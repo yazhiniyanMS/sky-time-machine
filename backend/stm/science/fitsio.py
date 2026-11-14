@@ -23,6 +23,8 @@ from astropy.wcs import WCS, FITSFixedWarning
 from astropy.wcs.utils import proj_plane_pixel_scales
 from scipy.interpolate import RegularGridInterpolator
 
+from stm.science.psf import EPSFGrid, load_epsf
+
 # Fallback flag definitions, copied from the MSKN/MSKM keywords of a DR1
 # FLAGS extension. Real products carry their own definitions, which take
 # precedence (see parse_flag_definitions).
@@ -142,6 +144,7 @@ class ImageProduct:
     wave_um: np.ndarray | None = None  # per-pixel central wavelength
     bandwidth_um: np.ndarray | None = None
     psf_fwhm_arcsec: float | None = None
+    epsf: EPSFGrid | None = None  # archive empirical PSFs (DR1/QR3 EPSF table)
     flag_bits: dict[str, int] = field(default_factory=lambda: dict(SPHEREX_DEFAULT_FLAGS))
     header_meta: dict[str, Any] = field(default_factory=dict)
     synthetic: bool = False
@@ -311,6 +314,19 @@ def load_spherex_l2(path: str | Path, product_id: str | None = None) -> ImagePro
         else:
             checks.append(CheckResult("wavelength_map", False, "no WCS-WAVE extension", None, None, "warning"))
 
+        epsf = load_epsf(hdul, ih)
+        checks.append(
+            CheckResult(
+                "epsf",
+                epsf is not None,
+                f"EPSF table: {epsf.meta['zone_grid']} zones, oversampling {epsf.oversampling}"
+                if epsf
+                else "no usable EPSF table (Gaussian PSF approximation will be used)",
+                None,
+                None,
+                "info" if epsf else "warning",
+            )
+        )
         t_mid = float(ih.get("MJD-AVG", ih.get("MJD-OBS", np.nan)))
         meta = {k: _jsonable(ih.get(k)) for k in PROVENANCE_KEYS if k in ih}
         meta["software_version"] = str(hdul[0].header.get("VERSION", ""))
@@ -338,6 +354,7 @@ def load_spherex_l2(path: str | Path, product_id: str | None = None) -> ImagePro
             header_meta=meta,
             checks=checks,
             synthetic=bool(ih.get("SYNTHET", False) or hdul[0].header.get("SYNTHET", False)),
+            epsf=epsf,
         )
 
 

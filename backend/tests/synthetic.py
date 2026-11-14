@@ -49,6 +49,36 @@ def render(wcs: WCS, n: int, sources: list[Src], fwhm_arcsec: float = FWHM_ARCSE
     return img
 
 
+def gauss2d(dx: np.ndarray, dy: np.ndarray, sx: float, sy: float, theta_deg: float) -> np.ndarray:
+    """Elliptical Gaussian (detector-pixel offsets), peak 1."""
+    t = np.radians(theta_deg)
+    u = dx * np.cos(t) + dy * np.sin(t)
+    v = -dx * np.sin(t) + dy * np.cos(t)
+    return np.exp(-0.5 * ((u / sx) ** 2 + (v / sy) ** 2))
+
+
+def epsf_table(n: int, sx: float, sy: float, theta_deg: float, ov: int = 5, size: int = 33) -> fits.BinTableHDU:
+    """SYNTHETIC EPSF table in the DR1 layout: 3x3 identical zones, oversampled, unit sum."""
+    c = (size - 1) / 2
+    yy, xx = np.mgrid[0:size, 0:size].astype(float)
+    p = gauss2d((xx - c) / ov, (yy - c) / ov, sx, sy, theta_deg)
+    p /= p.sum()
+    centres = [n / 6, n / 2, 5 * n / 6]
+    rows = [(i, j, centres[i], centres[j]) for j in range(3) for i in range(3)]  # x-fast then y
+    cols = [
+        fits.Column("BINX", "J", array=[r[0] for r in rows]),
+        fits.Column("BINY", "J", array=[r[1] for r in rows]),
+        fits.Column("XCENTER", "E", array=[r[2] for r in rows]),
+        fits.Column("YCENTER", "E", array=[r[3] for r in rows]),
+        fits.Column("EPSF", f"{size * size}D", dim=f"({size},{size})", array=np.repeat(p[None], len(rows), axis=0)),
+    ]
+    t = fits.BinTableHDU.from_columns(cols, name="EPSF")
+    t.header["OVSMPX"] = ov
+    t.header["OVSMPY"] = ov
+    t.header["SYNTHET"] = (True, "SYNTHETIC test PSF")
+    return t
+
+
 def write_mef(
     path: Path,
     *,
@@ -68,11 +98,23 @@ def write_mef(
     bad_pixels: list[tuple[int, int, str]] | None = None,
     fwhm_arcsec: float = FWHM_ARCSEC,
     product_id: str | None = None,
+    epsf: tuple[float, float, float] | None = None,
 ) -> Path:
     """Write a SYNTHETIC multi-extension FITS file with the SPHEREx L2 layout."""
     rng = np.random.default_rng(seed)
     w = make_wcs(ra, dec, n, rot_deg, offset_pix)
-    sky = render(w, n, sources, fwhm_arcsec) + background + zodi
+    if epsf is None:
+        sky = render(w, n, sources, fwhm_arcsec)
+    else:
+        # Stars rendered with the same elliptical detector-frame PSF that goes into the EPSF table.
+        sx, sy, th = epsf
+        fwhm_arcsec = 2.3548 * float(np.sqrt(0.5 * (sx**2 + sy**2))) * PIX_ARCSEC
+        yy, xx = np.mgrid[0:n, 0:n].astype(float)
+        sky = np.zeros((n, n))
+        for src in sources:
+            x, y = w.world_to_pixel_values(src.ra, src.dec)
+            sky += src.flux_mjy_sr_peak * gauss2d(xx - x, yy - y, sx, sy, th)
+    sky = sky + background + zodi
     img = sky + rng.normal(0, noise, (n, n))
     var = np.full((n, n), noise**2)
     flags = np.zeros((n, n), dtype=np.int32)
@@ -100,6 +142,8 @@ def write_mef(
             "CRVAL2W": 1.0,
             "CDELT1W": 1.0,
             "CDELT2W": 1.0,
+            "CRPIX1A": 1.0,
+            "CRPIX2A": 1.0,
         }
     )
     fh = fits.Header()
@@ -132,6 +176,7 @@ def write_mef(
             fits.ImageHDU(np.full((n, n), zodi, np.float32), zh, name="ZODI"),
             tab,
         ]
+        + ([epsf_table(n, *epsf)] if epsf is not None else [])
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     hdul.writeto(path, overwrite=True)
