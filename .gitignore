@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+frontend/next-env.d.ts
+frontend/test-results/
+frontend/playwright-report/
+
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Local data products (downloaded FITS, derived arrays, database)
+data/
+*.sqlite
+*.db
+
+# OS
+.DS_Store
