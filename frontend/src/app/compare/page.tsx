@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { ComparisonViewer } from "@/components/ComparisonViewer";
+import { PsfKernel } from "@/components/PsfKernel";
 import { Checks, ErrorNote, f, Panel, Progress, Stat } from "@/components/ui";
 import { API, type Comparison, get, type Job, pollJob, post } from "@/lib/api";
 import { BANDS, decDms, fmtDate, raHms } from "@/lib/astro";
@@ -15,26 +16,6 @@ const PSF_METHOD: Record<string, string> = {
   gaussian_not_needed: "not needed (equal header FWHM, no EPSF)",
   none: "none",
 };
-
-function PsfKernel({ k, label }: { k: number[][]; label: string }) {
-  const n = k.length;
-  const max = Math.max(...k.flat());
-  const c = 6;
-  return (
-    <figure className="flex flex-col items-center gap-1">
-      <svg width={n * c} height={n * c} role="img" aria-label={label}>
-        {k.map((row, j) =>
-          row.map((v, i) => {
-            const g = Math.round(255 * Math.sqrt(Math.max(0, v) / max));
-            // row 0 is the bottom of the grid (north up)
-            return <rect key={`${i}-${j}`} x={i * c} y={(n - 1 - j) * c} width={c} height={c} fill={`rgb(${g},${g},${g})`} />;
-          }),
-        )}
-      </svg>
-      <figcaption className="text-[10px] text-faint">{label}</figcaption>
-    </figure>
-  );
-}
 
 function ComparePage() {
   const sp = useSearchParams();
