@@ -43,5 +43,9 @@ def chat(req: ChatRequest) -> dict[str, Any]:
         "comparison": (ctx.get("comparison") or {}).get("id"),
         "region_candidates": [c["id"] for c in ctx.get("region_candidates", [])],
         "documents": [d["source"] for d in ctx.get("documentation", [])],
+        "citations": ctx.get("citations", []),
+        "spectrophotometry_run": (ctx.get("spectrophotometry") or {}).get("run_id"),
+        "investigation": (ctx.get("investigation") or {}).get("id"),
+        "counterparts": (ctx.get("counterparts") or {}).get("association"),
     }
     return result
