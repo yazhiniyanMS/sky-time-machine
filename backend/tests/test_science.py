@@ -194,3 +194,102 @@ def test_psf_matching_flag(tmp_path, fwhm_b):
     a, b = pair(tmp_path, fwhm_arcsec=fwhm_b)
     out = process_products(a, b, RA, DEC, 0.12, ProcessingConfig())
     assert out["res"].metrics["psf_matched"] is (fwhm_b != 7.5)
+
+
+# --- EPSF-based PSF matching -------------------------------------------------
+
+
+def epsf_pair(tmp_path, psf_a, psf_b, rot_b=0.0, b_sources=None, scale=1.0):
+    bright = [
+        Src(RA + 0.02, DEC + 0.01, 30.0 * scale),
+        Src(RA - 0.03, DEC - 0.02, 15.0 * scale),
+        Src(RA + 0.01, DEC - 0.03, 8.0 * scale),
+    ]
+    a = load_spherex_l2(
+        write_mef(tmp_path / "ea.fits", ra=RA, dec=DEC, sources=bright, t_mjd=61000.0, seed=11, epsf=psf_a),
+        "SYNTHETIC-EA",
+    )
+    b = load_spherex_l2(
+        write_mef(
+            tmp_path / "eb.fits",
+            ra=RA,
+            dec=DEC,
+            sources=b_sources or bright,
+            t_mjd=61030.0,
+            seed=12,
+            epsf=psf_b,
+            rot_deg=rot_b,
+        ),
+        "SYNTHETIC-EB",
+    )
+    return a, b
+
+
+def _resid(out):
+    res = out["res"]
+    return float(np.nanmax(np.abs(res.significance[res.valid])))
+
+
+def test_epsf_loaded_from_file(tmp_path):
+    a, _ = epsf_pair(tmp_path, (1.0, 0.7, 0.0), (1.0, 0.7, 0.0))
+    assert a.epsf is not None and a.epsf.psfs.shape == (3, 3, 33, 33)
+    assert abs(a.epsf.at_array(40, 40).sum() - 1) < 1e-9
+
+
+def test_epsf_cross_convolution_removes_psf_mismatch(tmp_path):
+    """Bright static stars observed with differently elongated PSFs leave no residual after matching."""
+    a, b = epsf_pair(tmp_path, (1.2, 0.6, 0.0), (0.6, 1.2, 0.0))
+    unmatched = ProcessingConfig()
+    unmatched.difference.psf_match = False
+    o_none = process_products(a, b, RA, DEC, 0.12, unmatched)
+    o_epsf = process_products(a, b, RA, DEC, 0.12, ProcessingConfig())
+    assert o_epsf["res"].metrics["psf_method"] == "epsf_cross"
+    assert o_epsf["res"].metrics["psf_mismatch_tv"] > 0.1
+    assert _resid(o_none) > 20  # strong quadrupole residuals without matching
+    assert _resid(o_epsf) < 6
+    assert [i for i in o_epsf["items"] if i["tier"] != "R"] == []
+
+
+def test_epsf_matching_follows_epoch_rotation(tmp_path):
+    """Same detector PSF, but epoch B's detector is rotated 35 degrees on the sky (stars S/N <= 60)."""
+    a, b = epsf_pair(tmp_path, (1.3, 0.6, 0.0), (1.3, 0.6, 0.0), rot_b=35.0, scale=0.1)
+    unmatched = ProcessingConfig()
+    unmatched.difference.psf_match = False
+    o = process_products(a, b, RA, DEC, 0.12, ProcessingConfig())
+    rots = (o["res"].metrics["psf_a"]["rotation_deg"], o["res"].metrics["psf_b"]["rotation_deg"])
+    assert abs(abs(rots[1] - rots[0]) - 35.0) < 1.0
+    # rotated epoch is blurred by bilinear resampling (~1/6 px^2 per axis); the aligned one is not
+    assert o["res"].metrics["psf_b"]["interpolation_variance_pix2"][0] > 0.15
+    assert o["res"].metrics["psf_a"]["interpolation_variance_pix2"][0] < 1e-6
+    assert _resid(process_products(a, b, RA, DEC, 0.12, unmatched)) > 8
+    assert _resid(o) < 6
+
+
+def test_very_bright_rotated_stars_leave_flagged_residuals(tmp_path):
+    """At S/N ~600 a few-percent residual remains (phase-dependent interpolation); it must not reach tier A."""
+    a, b = epsf_pair(tmp_path, (1.3, 0.6, 0.0), (1.3, 0.6, 0.0), rot_b=35.0)
+    unmatched = ProcessingConfig()
+    unmatched.difference.psf_match = False
+    r_none = _resid(process_products(a, b, RA, DEC, 0.12, unmatched))
+    o = process_products(a, b, RA, DEC, 0.12, ProcessingConfig())
+    assert _resid(o) < r_none / 4
+    assert all(i["tier"] != "A" for i in o["items"])
+
+
+def test_epsf_matching_keeps_real_changes(tmp_path):
+    bright = [Src(RA + 0.02, DEC + 0.01, 30.0), Src(RA - 0.03, DEC - 0.02, 15.0), Src(RA + 0.01, DEC - 0.03, 8.0)]
+    new = Src(RA - 0.015, DEC + 0.025, 1.5)
+    a, b = epsf_pair(tmp_path, (1.2, 0.6, 0.0), (0.6, 1.2, 0.0), b_sources=bright + [new])
+    o = process_products(a, b, RA, DEC, 0.12, ProcessingConfig())
+    good = [i for i in o["items"] if i["tier"] != "R"]
+    assert len(good) == 1
+    d = good[0]["detection"]
+    sep = np.hypot((d.ra - new.ra) * np.cos(np.radians(DEC)), d.dec - new.dec) * 3600
+    assert sep < 3 * d.pos_err_arcsec and d.sign == 1
+
+
+def test_gaussian_fallback_without_epsf(tmp_path):
+    a, b = pair(tmp_path, fwhm_arcsec=10.0)
+    o = process_products(a, b, RA, DEC, 0.12, ProcessingConfig())
+    assert o["res"].metrics["psf_method"] == "gaussian"
+    assert any(c.name == "psf_model" and "no EPSF" in c.detail for c in o["res"].checks)

@@ -11,8 +11,12 @@ Steps (each recorded in the returned provenance):
 3. Background: the archive zodiacal-light model (ZODI extension) is
    subtracted from each epoch, then a sigma-clipped plane is fitted to the
    residual difference and removed.
-4. PSF matching (optional, Gaussian approximation): the sharper epoch is
-   convolved to the broader epoch's FWHM using the header PSF_FWHM values.
+4. PSF matching. Default ("epsf_cross"): cross-convolution with the archive
+   empirical PSFs (EPSF extension) evaluated at the target and resampled to
+   the comparison grid: A is convolved with PSF_B and B with PSF_A, so both
+   end up with the identical PSF_A * PSF_B without any deconvolution.
+   Fallback ("gaussian", used when a product has no EPSF): the sharper epoch
+   is convolved to the broader header PSF_FWHM.
 5. Uncertainty: sigma_D = sqrt(var_A + var_B) after the same operations,
    then rescaled by the robust (MAD) width of D/sigma_D over source-free
    pixels to absorb resampling-correlated noise. The factor is recorded.
@@ -20,14 +24,17 @@ Steps (each recorded in the returned provenance):
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
 from astropy.convolution import Gaussian2DKernel, convolve
 from astropy.stats import sigma_clip
+from astropy.utils.exceptions import AstropyUserWarning
 
 from stm.science.fitsio import DEFAULT_BAD_FLAGS, CheckResult
+from stm.science.psf import convolve_full, moment_fwhm, psf_on_grid
 from stm.science.registration import RegisteredProduct, registration_check
 
 
@@ -38,7 +45,10 @@ class DifferenceConfig:
     subtract_zodi: bool = True
     fit_background_plane: bool = True
     psf_match: bool = True
-    psf_match_min_ratio: float = 1.05  # only match if FWHMs differ by more than 5 %
+    psf_method: str = "epsf_cross"  # epsf_cross | gaussian
+    psf_match_min_ratio: float = 1.05  # gaussian fallback: only match if FWHMs differ by more than 5 %
+    psf_kernel_half_width: int = 4  # EPSF kernel is (2*half+1)^2 comparison-grid pixels
+    psf_max_masked_weight: float = 0.05  # mask pixels whose kernel draws > 5 % weight from masked pixels
     noise_rescale: bool = True
     max_registration_shift_pix: float = 0.35
     min_baseline_days: float = 0.0
@@ -164,30 +174,7 @@ def compare(ra: RegisteredProduct, rb: RegisteredProduct, cfg: DifferenceConfig 
         metrics["zodi_a_median"] = float(np.nanmedian(ra.zodi))
         metrics["zodi_b_median"] = float(np.nanmedian(rb.zodi))
 
-    # PSF matching (Gaussian approximation; SPHEREx PSFs are undersampled and
-    # position dependent, so this is only a first-order correction).
-    fa, fb = A.psf_fwhm_arcsec, B.psf_fwhm_arcsec
-    metrics["psf_fwhm_a_arcsec"], metrics["psf_fwhm_b_arcsec"] = fa, fb
-    metrics["psf_matched"] = False
-    if cfg.psf_match and fa and fb and max(fa, fb) / min(fa, fb) > cfg.psf_match_min_ratio:
-        pix = float(np.abs(ra.wcs.wcs.cdelt[0]) * 3600.0)
-        s_kernel = np.sqrt(max(fa, fb) ** 2 - min(fa, fb) ** 2) / 2.3548 / pix
-        k = Gaussian2DKernel(s_kernel)
-        k2 = k.array**2
-        if fa < fb:
-            a = convolve(np.where(valid, a, np.nan), k, boundary="extend", nan_treatment="interpolate")
-            var_a = (
-                convolve(np.where(valid, var_a, np.nan), k2 / k2.sum(), boundary="extend", nan_treatment="interpolate")
-                * k2.sum()
-            )
-        else:
-            b = convolve(np.where(valid, b, np.nan), k, boundary="extend", nan_treatment="interpolate")
-            var_b = (
-                convolve(np.where(valid, var_b, np.nan), k2 / k2.sum(), boundary="extend", nan_treatment="interpolate")
-                * k2.sum()
-            )
-        metrics["psf_matched"] = True
-        metrics["psf_kernel_sigma_pix"] = float(s_kernel)
+    a, b, var_a, var_b, valid = _match_psfs(ra, rb, a, b, var_a, var_b, valid, cfg, metrics, checks)
 
     diff = b - a
     bg_mask = valid & ~(ra.source_flag | rb.source_flag)
@@ -225,3 +212,127 @@ def compare(ra: RegisteredProduct, rb: RegisteredProduct, cfg: DifferenceConfig 
         checks=checks,
         metrics=metrics,
     )
+
+
+def _convolve_masked(img: np.ndarray, var: np.ndarray, valid: np.ndarray, k: np.ndarray) -> tuple[np.ndarray, ...]:
+    """Convolve an image with a unit-sum kernel and propagate variance (var * k^2).
+
+    Returns the convolved image, variance and the fraction of kernel weight that fell on masked pixels.
+    """
+    with warnings.catch_warnings():
+        # Masked regions larger than the kernel stay NaN; they are excluded via `masked_w` anyway.
+        warnings.simplefilter("ignore", AstropyUserWarning)
+        return _convolve_masked_inner(img, var, valid, k)
+
+
+def _convolve_masked_inner(
+    img: np.ndarray, var: np.ndarray, valid: np.ndarray, k: np.ndarray
+) -> tuple[np.ndarray, ...]:
+    img_c = convolve(
+        np.where(valid, img, np.nan), k, boundary="extend", nan_treatment="interpolate", normalize_kernel=True
+    )
+    k2 = k**2
+    var_c = (
+        convolve(
+            np.where(valid, var, np.nan),
+            k2 / k2.sum(),
+            boundary="extend",
+            nan_treatment="interpolate",
+            normalize_kernel=True,
+        )
+        * k2.sum()
+    )
+    masked_w = convolve((~valid).astype(float), k, boundary="fill", fill_value=1.0, normalize_kernel=True)
+    return img_c, var_c, masked_w
+
+
+def _match_psfs(
+    ra: RegisteredProduct,
+    rb: RegisteredProduct,
+    a: np.ndarray,
+    b: np.ndarray,
+    var_a: np.ndarray,
+    var_b: np.ndarray,
+    valid: np.ndarray,
+    cfg: DifferenceConfig,
+    metrics: dict[str, Any],
+    checks: list[CheckResult],
+) -> tuple[np.ndarray, ...]:
+    A, B = ra.source, rb.source
+    fa, fb = A.psf_fwhm_arcsec, B.psf_fwhm_arcsec
+    pix = float(np.abs(ra.wcs.wcs.cdelt[0]) * 3600.0)
+    metrics["psf_fwhm_a_arcsec"], metrics["psf_fwhm_b_arcsec"] = fa, fb
+    metrics["psf_matched"] = False
+    metrics["psf_method"] = "none"
+    metrics["psf_fwhm_effective_arcsec"] = max(fa or 2 * pix, fb or 2 * pix)
+    if not cfg.psf_match:
+        return a, b, var_a, var_b, valid
+
+    if cfg.psf_method == "epsf_cross" and A.epsf is not None and B.epsf is not None:
+        ra0, dec0 = (float(v) for v in ra.wcs.wcs.crval)
+        try:
+            ka, info_a = psf_on_grid(A.epsf, A.wcs, ra.wcs, ra0, dec0, cfg.psf_kernel_half_width, a.shape)
+            kb, info_b = psf_on_grid(B.epsf, B.wcs, rb.wcs, ra0, dec0, cfg.psf_kernel_half_width, b.shape)
+        except Exception as e:  # noqa: BLE001 - fall back, but record why
+            checks.append(
+                CheckResult(
+                    "psf_model", True, f"EPSF evaluation failed ({e}); Gaussian fallback used", None, None, "warning"
+                )
+            )
+        else:
+            a, var_a, wa = _convolve_masked(a, var_a, valid, kb)  # A * PSF_B
+            b, var_b, wb = _convolve_masked(b, var_b, valid, ka)  # B * PSF_A
+            new_valid = valid & (wa <= cfg.psf_max_masked_weight) & (wb <= cfg.psf_max_masked_weight)
+            eff = convolve_full(ka, kb)
+            mism = float(0.5 * np.abs(ka - kb).sum())  # total-variation distance between the two PSFs
+            metrics.update(
+                {
+                    "psf_matched": True,
+                    "psf_method": "epsf_cross",
+                    "psf_a": info_a,
+                    "psf_b": info_b,
+                    "psf_kernel_a": np.round(ka, 6).tolist(),
+                    "psf_kernel_b": np.round(kb, 6).tolist(),
+                    "psf_mismatch_tv": mism,
+                    "psf_fwhm_effective_arcsec": moment_fwhm(eff) * pix,
+                    "psf_masked_growth_fraction": float((valid & ~new_valid).mean()),
+                }
+            )
+            checks.append(
+                CheckResult(
+                    "psf_model",
+                    True,
+                    f"EPSF cross-convolution: PSF difference (total variation) {mism:.3f}; effective FWHM "
+                    f'{metrics["psf_fwhm_effective_arcsec"]:.2f}" (moments); detector rotation A/B '
+                    f"{info_a['rotation_deg']:.1f}°/{info_b['rotation_deg']:.1f}°",
+                    mism,
+                    None,
+                    "info",
+                )
+            )
+            return a, b, var_a, var_b, new_valid
+
+    # Gaussian fallback (no EPSF available, or explicitly requested).
+    if fa and fb and max(fa, fb) / min(fa, fb) > cfg.psf_match_min_ratio:
+        s_kernel = np.sqrt(max(fa, fb) ** 2 - min(fa, fb) ** 2) / 2.3548 / pix
+        k = Gaussian2DKernel(s_kernel).array
+        if fa < fb:
+            a, var_a, w = _convolve_masked(a, var_a, valid, k)
+        else:
+            b, var_b, w = _convolve_masked(b, var_b, valid, k)
+        valid = valid & (w <= cfg.psf_max_masked_weight)
+        metrics.update({"psf_matched": True, "psf_method": "gaussian", "psf_kernel_sigma_pix": float(s_kernel)})
+    else:
+        metrics["psf_method"] = "gaussian_not_needed" if fa and fb else "none"
+    if A.epsf is None or B.epsf is None:
+        checks.append(
+            CheckResult(
+                "psf_model",
+                True,
+                "no EPSF extension in one or both products; header-FWHM Gaussian approximation used",
+                None,
+                None,
+                "warning",
+            )
+        )
+    return a, b, var_a, var_b, valid

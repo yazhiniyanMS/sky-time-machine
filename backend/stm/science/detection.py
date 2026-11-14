@@ -109,7 +109,11 @@ def detect(
     pix = float(abs(wcs.wcs.cdelt[0]) * 3600.0)
     omega = pixel_solid_angle_sr(pix)
     to_ujy = omega * 1e12
-    fwhm_arcsec = max(ra_reg.source.psf_fwhm_arcsec or 2 * pix, rb_reg.source.psf_fwhm_arcsec or 2 * pix)
+    # Effective PSF of the matched difference image (EPSF cross-convolution broadens it).
+    fwhm_arcsec = float(
+        res.metrics.get("psf_fwhm_effective_arcsec")
+        or max(ra_reg.source.psf_fwhm_arcsec or 2 * pix, rb_reg.source.psf_fwhm_arcsec or 2 * pix)
+    )
     r_ap = max(1.0, cfg.aperture_fwhm_mult * fwhm_arcsec / pix)
 
     sig = np.where(res.valid, res.significance, 0.0)

@@ -19,7 +19,7 @@ Nothing in the application is simulated: synthetic images exist only inside the 
 | Sky explorer (Aladin Lite, IRSA HiPS incl. SPHEREx DR1 all-sky cube, SPHEREx footprints, SIMBAD, name/coordinate search) | Working |
 | Observation discovery (IRSA SIA2, `spherex_dr1`) and timeline of real exposure midpoints with coverage gaps | Working |
 | Per-exposure wavelength at the target (FITS headers via HTTP Range + WCS-WAVE lookup) and spectrally matched pairs | Working |
-| Cutout retrieval, FITS/WCS validation, registration, spectrally-matched differencing, uncertainty maps | Working |
+| Cutout retrieval, FITS/WCS validation, registration, spectrally-matched differencing, EPSF-based PSF matching, uncertainty maps | Working |
 | Candidate detection, artifact checks, explainable ranking, machine classes | Working (unvalidated science, see [LIMITATIONS](docs/LIMITATIONS.md)) |
 | Blink comparator, side-by-side, difference grid, synced zoom/pan, stretch control, FITS downloads | Working |
 | Discovery permalinks `/discovery/ST-YYYY-NNNNNN`, shareable explorer/compare URLs | Working |

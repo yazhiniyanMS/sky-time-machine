@@ -33,12 +33,49 @@ neighbour, and any output pixel touching a bad input pixel is masked. A windowed
 any residual translation within ±5 px; above 0.35 px the comparison is rejected rather than shifted. On real M31
 pairs the residual was 0.002 px.
 
-## PSF matching
+## PSF matching (EPSF cross-convolution)
 
-If header `PSF_FWHM` values differ by more than 5 %, the sharper epoch is convolved with a Gaussian of
-σ = √(FWHM_broad² − FWHM_sharp²)/2.3548. This is a first-order correction: SPHEREx PSFs are undersampled
-(FWHM ≈ 1.2 px) and vary across the detector, so bright sources can leave dipole residuals. The header value is
-a detector median, so in DR1 both epochs usually report the same FWHM and no matching is applied.
+DR1 products carry an `EPSF` table with 441 empirical PSFs on a 21 × 21 grid of detector zones (~97 px each).
+Each PSF is a 33 × 33 array at 5× oversampling with unit sum, and zone centres are in 0-based active-pixel
+coordinates. In real DR1 files these PSFs are moderately elliptical: 6–13 %, broader along detector x, with
+x/y variance ratios of 1.09–1.25. Two epochs usually see a sky position at different detector positions and at
+very different position angles (174° apart for the M31 pair below), so their PSFs on the sky differ even when
+the header `PSF_FWHM` values are identical.
+
+For each epoch the pipeline:
+
+1. Locates the target on that epoch's detector and interpolates the EPSF bilinearly between the four nearest
+   zone centres.
+2. Maps every pixel (u, v) of a 9 × 9 kernel on the comparison grid to the detector offset J·(u, v). J is the
+   local Jacobian from comparison-grid pixels to detector pixels, so it carries the epoch's rotation and scale.
+   The oversampled ePSF, which is already pixel-integrated, is sampled there with cubic interpolation.
+3. Adds the expected blur from bilinear resampling onto the comparison grid. Interpolating at sub-pixel phase t
+   adds variance t(1 − t) along each input axis. The mean over the actual phases of the grid is used: 0 for an
+   epoch aligned with the grid, about 1/6 px² for a rotated one. Without this term a rotated epoch looks
+   systematically broader than an aligned one, which left 76σ residuals on bright synthetic stars.
+
+The epochs are then **cross-convolved**: A ⊗ PSF_B and B ⊗ PSF_A. Both images end up with the same PSF,
+PSF_A ⊗ PSF_B, without deconvolution, so noise is not amplified and elliptical or rotated PSFs need no
+regularisation. Variances are propagated as var ⊗ PSF². Pixels whose kernel draws more than 5 % of its weight
+from masked pixels are masked. The cost is resolution: the effective FWHM grows by about √2 (14″ on the M31
+pair), and detection apertures and dipole searches use this effective FWHM.
+
+Products without an EPSF table, such as synthetic data or other surveys, fall back to a Gaussian kernel. The
+sharper epoch is convolved to the broader header `PSF_FWHM`, if they differ by more than 5 %.
+
+**Orientation check on real data.** The FITS column `EPSF` has `TDIM = (33,33)`, read as numpy `[y, x]`. On 20
+isolated stars in a real DR1 detector-1 Galactic-plane field (RA 280°, Dec −5°), the EPSF as read fits better
+than its transpose (χ² 415k vs 453k). The absolute fit quality is modest: reduced χ² is a few hundred on bright,
+high-S/N stars, so the archive EPSFs are good but imperfect models.
+
+**Measured effect.**
+- Synthetic stars with orthogonal elongations (1.2 vs 0.6 px): residuals of more than 20σ drop below 6σ, and an
+  injected source is still recovered.
+- Same PSF, epoch B rotated 35°, stars at S/N ≤ 60: 13.8σ drops to 3.7σ, which is noise level.
+- Same rotation, stars at S/N ≈ 600: 145σ drops to 24σ. About 4 % of the peak remains, because the blur varies
+  with sub-pixel phase from star to star. The bright-source and dipole checks keep such residuals out of tier A.
+- Real M31 pair (2025-07-11 vs 2026-01-04, detector 1): peak |significance| fell from 14.1σ to 7.4σ, and the
+  −11σ dipole subtraction residual disappeared.
 
 ## Uncertainty
 

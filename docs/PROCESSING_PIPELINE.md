@@ -37,8 +37,9 @@ bad-pixel mask, and reports coverage and usable fractions. `registration_check` 
 ## Stage D — Differencing
 
 `compare` applies the checks and steps described in [SCIENTIFIC_METHODOLOGY.md](SCIENTIFIC_METHODOLOGY.md):
-compatibility checks, spectral mask, ZODI subtraction, optional Gaussian PSF matching, background plane,
-uncertainty propagation and empirical noise rescaling.
+compatibility checks, spectral mask, ZODI subtraction, EPSF cross-convolution (Gaussian fallback), background
+plane, uncertainty propagation and empirical noise rescaling. The PSF kernels, detector positions, rotations,
+interpolation variances and effective FWHM are stored in the comparison's `metrics`.
 
 ## Stages E–G — Detection, artifact rejection, ranking
 
@@ -62,7 +63,8 @@ keywords. Layers are labelled `original` (archive pixels, resampled) or `derived
 ```json
 {
   "difference": {"max_dlambda_frac": 0.5, "min_valid_fraction": 0.2, "subtract_zodi": true,
-                 "fit_background_plane": true, "psf_match": true, "psf_match_min_ratio": 1.05,
+                 "fit_background_plane": true, "psf_match": true, "psf_method": "epsf_cross",
+                 "psf_match_min_ratio": 1.05, "psf_kernel_half_width": 4, "psf_max_masked_weight": 0.05,
                  "noise_rescale": true, "max_registration_shift_pix": 0.35, "min_baseline_days": 0.0,
                  "bad_flags": ["TRANSIENT", "OVERFLOW", "SUR_ERROR", "NONFUNC", "MISSING_DATA", "HOT", "COLD",
                                "NONLINEAR", "PERSIST", "OUTLIER", "GHOST", "GHOST_FPA", "GHOST_EXT", "STREAK",

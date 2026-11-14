@@ -9,6 +9,33 @@ import { API, type Comparison, get, type Job, pollJob, post } from "@/lib/api";
 import { BANDS, decDms, fmtDate, raHms } from "@/lib/astro";
 import { href, readViewState, toQuery } from "@/lib/viewstate";
 
+const PSF_METHOD: Record<string, string> = {
+  epsf_cross: "EPSF cross-convolution",
+  gaussian: "Gaussian (header FWHM, no EPSF)",
+  gaussian_not_needed: "not needed (equal header FWHM, no EPSF)",
+  none: "none",
+};
+
+function PsfKernel({ k, label }: { k: number[][]; label: string }) {
+  const n = k.length;
+  const max = Math.max(...k.flat());
+  const c = 6;
+  return (
+    <figure className="flex flex-col items-center gap-1">
+      <svg width={n * c} height={n * c} role="img" aria-label={label}>
+        {k.map((row, j) =>
+          row.map((v, i) => {
+            const g = Math.round(255 * Math.sqrt(Math.max(0, v) / max));
+            // row 0 is the bottom of the grid (north up)
+            return <rect key={`${i}-${j}`} x={i * c} y={(n - 1 - j) * c} width={c} height={c} fill={`rgb(${g},${g},${g})`} />;
+          }),
+        )}
+      </svg>
+      <figcaption className="text-[10px] text-faint">{label}</figcaption>
+    </figure>
+  );
+}
+
 function ComparePage() {
   const sp = useSearchParams();
   const router = useRouter();
@@ -130,11 +157,24 @@ function ComparePage() {
                 <dt className="text-faint">Pipeline</dt><dd>{comp.pipeline_version}</dd>
                 <dt className="text-faint">Processed</dt><dd>{comp.provenance.processed_at?.slice(0, 19)}Z</dd>
                 <dt className="text-faint">ZODI A / B</dt><dd>{f(m.zodi_a_median, 3)} / {f(m.zodi_b_median, 3)} MJy/sr</dd>
-                <dt className="text-faint">PSF FWHM A / B</dt><dd>{f(m.psf_fwhm_a_arcsec, 2)}″ / {f(m.psf_fwhm_b_arcsec, 2)}″{m.psf_matched ? " (matched)" : ""}</dd>
+                <dt className="text-faint">PSF FWHM A / B</dt><dd>{f(m.psf_fwhm_a_arcsec, 2)}″ / {f(m.psf_fwhm_b_arcsec, 2)}″ (header)</dd>
+                <dt className="text-faint">PSF matching</dt><dd>{PSF_METHOD[m.psf_method] ?? m.psf_method ?? "—"}</dd>
+                {m.psf_method === "epsf_cross" && (<>
+                  <dt className="text-faint">PSF difference</dt><dd>{f(m.psf_mismatch_tv, 3)} (total variation)</dd>
+                  <dt className="text-faint">Effective FWHM</dt><dd>{f(m.psf_fwhm_effective_arcsec, 2)}″</dd>
+                  <dt className="text-faint">Detector PA A / B</dt><dd>{f(m.psf_a?.rotation_deg, 1)}° / {f(m.psf_b?.rotation_deg, 1)}°</dd>
+                </>)}
                 <dt className="text-faint">Noise rescale</dt><dd>×{f(m.noise_rescale_factor, 3)}</dd>
                 <dt className="text-faint">Median |Δλ|/Δλ</dt><dd>{f(m.dlambda_frac_median, 4)}</dd>
                 <dt className="text-faint">Candidates</dt><dd>{s.n_candidates ?? 0} ({s.n_tier_a ?? 0} tier A, {s.n_rejected ?? 0} rejected)</dd>
               </dl>
+              {m.psf_kernel_a && m.psf_kernel_b && (
+                <div className="mt-3 flex gap-4 items-end">
+                  <PsfKernel k={m.psf_kernel_a} label="PSF A (EPSF)" />
+                  <PsfKernel k={m.psf_kernel_b} label="PSF B (EPSF)" />
+                  <p className="text-[11px] text-faint flex-1">Archive EPSFs at the target, resampled to the comparison grid. A is convolved with PSF B and B with PSF A, so both share PSF A ⊗ PSF B.</p>
+                </div>
+              )}
               <details className="mt-2 text-[11px]">
                 <summary className="cursor-pointer text-muted">Full provenance (JSON)</summary>
                 <pre className="mt-2 max-h-80 overflow-auto bg-bg border border-line rounded p-2 num text-[10px] text-muted">{JSON.stringify(comp.provenance, null, 2)}</pre>

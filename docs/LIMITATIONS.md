@@ -8,9 +8,13 @@
 - **Wavelength matching limits the usable pairs.** Because of the linear-variable filters, most pairs of epochs
   observe a position at different wavelengths. Only pairs within half a bandwidth are compared. At M31,
   detector 1 had 26 such pairs among 38 exposures.
-- **Approximate PSF matching.** A Gaussian kernel is used, driven by the header median `PSF_FWHM`. SPHEREx PSFs
-  are undersampled and vary across the detector. The archive EPSF grid is not used yet, so bright sources can
-  leave dipole residuals. These are flagged but not removed.
+- **PSF matching is per field, not per source.** The EPSF is evaluated at the field centre. Zones are about
+  97 px (0.17°) apart and change slowly, but within a 0.25° field the PSF does vary somewhat. The
+  interpolation blur is modelled by its field-average value, so very bright stars (S/N ≳ 300) can still leave
+  residuals of a few percent of their peak. These are flagged by the dipole and bright-source checks. Fitting
+  real stars shows the archive EPSFs are imperfect models (reduced χ² of a few hundred on bright stars).
+- **Cross-convolution costs resolution.** The matched FWHM is about √2 larger than either epoch's (≈ 14″ vs
+  8.8″), which lowers point-source sensitivity in exchange for robustness.
 - **Correlated noise.** Bilinear resampling correlates pixels. Per-pixel σ is rescaled empirically, but aperture
   uncertainties ignore covariance.
 - **Epoch fluxes in extended emission.** Epoch A/B aperture fluxes subtract a local annulus median. Inside

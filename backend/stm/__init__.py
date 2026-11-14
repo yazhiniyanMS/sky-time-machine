@@ -4,4 +4,4 @@ __version__ = "0.1.0"
 
 # Bumped whenever an algorithm change can alter numerical results of the
 # differencing / detection pipeline. Recorded with every processing run.
-PIPELINE_VERSION = "stm-pipeline-0.1.0"
+PIPELINE_VERSION = "stm-pipeline-0.2.0"
