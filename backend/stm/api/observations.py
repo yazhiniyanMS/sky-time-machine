@@ -4,7 +4,8 @@ from collections import defaultdict
 from functools import lru_cache
 from typing import Any
 
-from astropy.coordinates import SkyCoord
+import astropy.units as u
+from astropy.coordinates import SkyCoord, get_constellation
 from astropy.time import Time
 from fastapi import APIRouter, HTTPException, Query
 
@@ -33,6 +34,13 @@ def resolve(name: str = Query(..., min_length=1, max_length=100)) -> dict[str, A
     except Exception as e:  # noqa: BLE001
         raise HTTPException(404, f"Could not resolve {name!r}: {e}") from e
     return {"name": name, "ra": float(c.icrs.ra.deg), "dec": float(c.icrs.dec.deg), "resolver": "CDS Sesame"}
+
+
+@router.get("/constellation")
+def constellation(ra: float = Query(..., ge=0, lt=360), dec: float = Query(..., ge=-90, le=90)) -> dict[str, Any]:
+    """IAU constellation containing the position (astropy, Delporte boundaries precessed from B1875)."""
+    c = SkyCoord(ra * u.deg, dec * u.deg, frame="icrs")
+    return {"name": str(get_constellation(c)), "abbrev": str(get_constellation(c, short_name=True))}
 
 
 @router.get("/observations")
