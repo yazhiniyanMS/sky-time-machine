@@ -22,6 +22,13 @@ class Settings(BaseSettings):
     # Archive access
     irsa_sia_url: str = "https://irsa.ipac.caltech.edu/SIA"
     spherex_collection: str = "spherex_dr1"
+    spherex_cube_collection: str = "spherex_dr1_cube"
+    # Byte-range reads (headers, pixel stamps, cube spectra) prefer the public AWS mirror listed in the
+    # SIA cloud_access column and fall back to IRSA.
+    prefer_cloud_mirror: bool = True
+    range_workers: int = 12
+    # Periodic watchlist checks against the archive (hours; 0 disables the background checker)
+    watch_interval_hours: float = 0.0
     http_timeout_s: float = 120.0
     http_retries: int = 3
 
