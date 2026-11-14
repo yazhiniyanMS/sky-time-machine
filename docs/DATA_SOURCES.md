@@ -22,7 +22,7 @@
 | `FLAGS` | Per-pixel bitmask. Bit names/values are read from the file's own `MSKNnnnn` / `MSKMnnnn` keywords |
 | `VARIANCE` | Variance of `IMAGE`, (MJy/sr)² |
 | `ZODI` | Modelled zodiacal light, MJy/sr |
-| `EPSF` / `PSF` | Empirical PSFs on a grid of detector zones (not used yet beyond the header `PSF_FWHM`) |
+| `EPSF` / `PSF` | Empirical PSFs: DR1 has 21 × 21 zones, each 33 × 33 at 5× oversampling, centres in active-pixel coordinates. Used for PSF matching. The QR2 `PSF` cube layout is not supported. |
 | `WCS-WAVE` | 9 × 9 lookup table of central wavelength and bandwidth versus raw detector position (`-TAB`, keyword set `W`) |
 
 Observation time: `MJD-AVG` (mid-exposure, UTC); also `DATE-BEG/END`, `XPOSURE`. Detector: `DETECTOR` (1–6).
