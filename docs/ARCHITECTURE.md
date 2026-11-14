@@ -39,6 +39,20 @@
 | AI assistant | `stm/assistant/` |
 | Community | `stm/api/community.py`, `Annotation` and `AuditEvent` tables |
 
+## V2 research-platform design
+
+- **Byte ranges instead of cutouts for many-epoch work.** The pipeline reads a ~0.4 MB stamp per exposure, not
+  a 4 MB cutout.
+- **Spectra from two labelled sources.** The archive coadd cube (no errors) and per-exposure photometry
+  (VARIANCE errors) are never merged.
+- **Light curves per official channel.** Statistics come with measured systematics warnings.
+- **Cross-matching is stored, not recomputed.** `counterpart_assessments` keeps every query with provenance; the
+  UI reads stored results with `cached_only` and asks the catalogues only on demand.
+- **Investigations store snapshots.** Items keep a snapshot of the referenced record, so reports stay readable
+  across pipeline versions.
+- **Migrations.** Alembic runs at startup. Databases created before migrations existed are stamped at 0001,
+  then upgraded.
+
 ## Design decisions
 
 - **Single backend service.** One FastAPI process serves the API and runs background jobs. There are no

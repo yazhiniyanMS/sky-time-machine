@@ -37,6 +37,33 @@ PHANMISS 14, NONLINEAR 15, PERSIST 17, OUTLIER 19, CROSSTALK 20, SOURCE 21, GHOS
 GHOST_EXT 24, STREAK 25, BLOOM 26, SNOWBALL 27, HALO 28`. The application always prefers the definitions in
 each file over this list.
 
+### DR1 all-sky spectral cube
+
+`COLLECTION=spherex_dr1_cube` returns HEALPix order-5 tiles (e.g. `.../dr1/hips5_cube/hips_20261026/Norder5/Dir0/
+Npix677_cube.fits`, ~313 MB).
+
+| HDU | Content |
+|---|---|
+| `IMAGE` | 512 × 512 × 102 surface brightness, MJy/sr; RA---HPX/DEC--HPX WCS; spectral axis WAVE-TAB |
+| `NHITS` | Contributing sample counts |
+| `FLAGS` | Per-channel flags |
+| `SPECTRAL_CHANNELS` | The official 102-channel definition (DETECTOR, SUBCHAN, WAVELENGTH, WL_MIN, WL_MAX, R, R_STD, BANDWIDTH) |
+| `WCS-WAVE` | Plane → wavelength lookup |
+
+The primary header lists `BLANKCH` (all-NaN planes) and MJD-BEG/END of the inputs. The channel table is cached
+from the archive. A copy is in `backend/tests/fixtures/spherex_dr1_spectral_channels.json`, used only as an
+offline fallback.
+
+### Byte-range access
+
+- **Both hosts support byte ranges.** The AWS mirror is `https://nasa-irsa-spherex.s3.us-east-1.amazonaws.com/<key>`,
+  with the key from the SIA `cloud_access` column; IRSA IBE is the other host.
+- **What is read this way:**
+  - headers (HDU index cached per product)
+  - pixel rows of uncompressed HDUs
+  - RICE_1 tile-compressed rows (full-frame `FLAGS`)
+  - small tables: WCS-WAVE, EPSF (once per detector and L2 version) and SPECTRAL_CHANNELS.
+
 ### SPHEREx HiPS
 
 IRSA publishes a DR1 all-sky spectral cube HiPS (`ivo://IPAC/P/SPHEREx/DR1/cube`, 102 channels) at
@@ -51,6 +78,17 @@ explorer for context only; no measurement uses HiPS pixels.
 | CDS SIMBAD (via Aladin Lite) | Optional catalogue overlay in the explorer |
 | DSS2 colour and 2MASS colour HiPS, IRSA mirrors | Explorer backgrounds |
 | Aladin Lite 3.8.2 (jsDelivr, pinned) | Sky viewer |
+
+## Catalogues and sky layers (V2)
+
+| Source | Use | Access |
+|---|---|---|
+| SIMBAD | Counterparts (identifier, object type, coordinate errors, bibcode); galaxy/nebula layers by object type | CDS TAP, fallback Harvard (CfA) mirror |
+| Gaia DR3 (`gaiadr3.gaia_source`) | Counterparts (positions + errors at J2016.0, G, parallax, proper motion) | ESA Gaia archive TAP, fallback IRSA TAP `gaia_dr3_source` |
+| d3-celestial v0.7.32 (BSD-3-Clause) | Constellation boundaries (IAU / CDS VI/49 derived) and traditional figures | jsDelivr, cached by the backend |
+
+Catalogue responses are cached for 7 days. Every cross-match stores the service URL, its status and the time
+queried.
 
 ## Provenance kept for every comparison
 
