@@ -30,7 +30,21 @@ export const SURVEYS = [
   { id: "spherex", label: "SPHEREx DR1 all-sky cube (IRSA HiPS)", url: SPHEREX_HIPS },
 ] as const;
 
+/** Independently toggleable vector layer: polylines/polygons and/or point sources. */
+export interface VectorLayer {
+  id: string;
+  color: string;
+  lineWidth?: number;
+  opacity?: number;
+  polylines?: [number, number][][];
+  polygons?: { pts: [number, number][]; fill?: string; label?: string }[];
+  sources?: { ra: number; dec: number; id: string; label: string }[];
+  shape?: "circle" | "square" | "triangle" | "rhomb" | "plus" | "cross";
+  size?: number;
+}
+
 interface Props {
+  layers?: VectorLayer[];
   ra: number;
   dec: number;
   fov: number;
@@ -60,6 +74,7 @@ function loadAladin(): Promise<any> {
 export function SkyMap(p: Props) {
   const div = useRef<HTMLDivElement>(null);
   const al = useRef<{ A: any; aladin: any; fp: any; cat: any; simbad: any; hips: any } | null>(null);
+  const layerRefs = useRef<Map<string, any[]>>(new Map());
   const [err, setErr] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const onMove = useRef(p.onMove);
@@ -184,6 +199,43 @@ export function SkyMap(p: Props) {
     c.aladin.addOverlay(c.fp);
     for (const f of p.footprints) c.fp.add(c.A.polygon(f.polygon, { color: f.color, lineWidth: 1 }));
   }, [p.footprints, ready]);
+
+  // Extra vector layers (constellations, catalogue objects, saved candidates, coverage cells).
+  // Each layer is rebuilt wholesale when it changes; hidden layers are removed so they never cover the image.
+  const layersKey = JSON.stringify((p.layers ?? []).map((l) => [l.id, l.polylines?.length, l.polygons?.length, l.sources?.length, l.color]));
+  useEffect(() => {
+    const c = al.current;
+    if (!c) return;
+    const want = new Map((p.layers ?? []).map((l) => [l.id, l]));
+    for (const [id, objs] of layerRefs.current) {
+      for (const o of objs) {
+        try {
+          o.hide?.();
+          c.aladin.removeLayer?.(o);
+        } catch {}
+      }
+      layerRefs.current.delete(id);
+    }
+    for (const l of want.values()) {
+      const objs: any[] = [];
+      if (l.polylines?.length || l.polygons?.length) {
+        const ov = c.A.graphicOverlay({ color: l.color, lineWidth: l.lineWidth ?? 1, opacity: l.opacity ?? 1 });
+        c.aladin.addOverlay(ov);
+        for (const pl of l.polylines ?? []) if (pl.length > 1) ov.add(c.A.polyline(pl, { color: l.color, lineWidth: l.lineWidth ?? 1 }));
+        for (const pg of l.polygons ?? [])
+          ov.add(c.A.polygon(pg.pts, { color: l.color, lineWidth: l.lineWidth ?? 1, fill: !!pg.fill, fillColor: pg.fill, opacity: l.opacity ?? 1 }));
+        objs.push(ov);
+      }
+      if (l.sources?.length) {
+        const cat = c.A.catalog({ name: l.id, sourceSize: l.size ?? 10, shape: l.shape ?? "circle", color: l.color });
+        c.aladin.addCatalog(cat);
+        cat.addSources(l.sources.map((s) => c.A.source(s.ra, s.dec, { id: s.id, label: s.label, layer: l.id })));
+        objs.push(cat);
+      }
+      layerRefs.current.set(l.id, objs);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layersKey, ready]);
 
   // Candidate markers
   useEffect(() => {

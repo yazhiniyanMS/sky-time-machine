@@ -1,0 +1,1025 @@
+{
+ "source": "IRSA SPHEREx DR1 all-sky spectral cube, SPECTRAL_CHANNELS HDU of https://irsa.ipac.caltech.edu/ibe/data/spherex/dr1/hips5_cube/hips_20261026/Norder5/Dir0/Npix677_cube.fits",
+ "channels": [
+  {
+   "index": 0,
+   "detector": 1,
+   "subchannel": 1,
+   "wave_um": 0.753000020980835,
+   "wave_min_um": 0.7429999709129333,
+   "wave_max_um": 0.7620000243186951,
+   "R": 42.0,
+   "bandwidth_um": 0.017999999225139618
+  },
+  {
+   "index": 1,
+   "detector": 1,
+   "subchannel": 2,
+   "wave_um": 0.7710000276565552,
+   "wave_min_um": 0.7609999775886536,
+   "wave_max_um": 0.781000018119812,
+   "R": 42.0,
+   "bandwidth_um": 0.01899999938905239
+  },
+  {
+   "index": 2,
+   "detector": 1,
+   "subchannel": 3,
+   "wave_um": 0.7900000214576721,
+   "wave_min_um": 0.7799999713897705,
+   "wave_max_um": 0.800000011920929,
+   "R": 41.0,
+   "bandwidth_um": 0.01899999938905239
+  },
+  {
+   "index": 3,
+   "detector": 1,
+   "subchannel": 4,
+   "wave_um": 0.8090000152587891,
+   "wave_min_um": 0.7979999780654907,
+   "wave_max_um": 0.8190000057220459,
+   "R": 40.0,
+   "bandwidth_um": 0.019999999552965164
+  },
+  {
+   "index": 4,
+   "detector": 1,
+   "subchannel": 5,
+   "wave_um": 0.828000009059906,
+   "wave_min_um": 0.8169999718666077,
+   "wave_max_um": 0.8389999866485596,
+   "R": 40.0,
+   "bandwidth_um": 0.019999999552965164
+  },
+  {
+   "index": 5,
+   "detector": 1,
+   "subchannel": 6,
+   "wave_um": 0.8479999899864197,
+   "wave_min_um": 0.8370000123977661,
+   "wave_max_um": 0.859000027179718,
+   "R": 40.0,
+   "bandwidth_um": 0.020999999716877937
+  },
+  {
+   "index": 6,
+   "detector": 1,
+   "subchannel": 7,
+   "wave_um": 0.8679999709129333,
+   "wave_min_um": 0.8569999933242798,
+   "wave_max_um": 0.8790000081062317,
+   "R": 40.0,
+   "bandwidth_um": 0.02199999988079071
+  },
+  {
+   "index": 7,
+   "detector": 1,
+   "subchannel": 8,
+   "wave_um": 0.8889999985694885,
+   "wave_min_um": 0.8769999742507935,
+   "wave_max_um": 0.8999999761581421,
+   "R": 39.0,
+   "bandwidth_um": 0.023000000044703484
+  },
+  {
+   "index": 8,
+   "detector": 1,
+   "subchannel": 9,
+   "wave_um": 0.9100000262260437,
+   "wave_min_um": 0.8980000019073486,
+   "wave_max_um": 0.921999990940094,
+   "R": 39.0,
+   "bandwidth_um": 0.023000000044703484
+  },
+  {
+   "index": 9,
+   "detector": 1,
+   "subchannel": 10,
+   "wave_um": 0.9319999814033508,
+   "wave_min_um": 0.9200000166893005,
+   "wave_max_um": 0.9440000057220459,
+   "R": 39.0,
+   "bandwidth_um": 0.024000000208616257
+  },
+  {
+   "index": 10,
+   "detector": 1,
+   "subchannel": 11,
+   "wave_um": 0.9549999833106995,
+   "wave_min_um": 0.9419999718666077,
+   "wave_max_um": 0.9670000076293945,
+   "R": 39.0,
+   "bandwidth_um": 0.02500000037252903
+  },
+  {
+   "index": 11,
+   "detector": 1,
+   "subchannel": 12,
+   "wave_um": 0.9779999852180481,
+   "wave_min_um": 0.9639999866485596,
+   "wave_max_um": 0.9900000095367432,
+   "R": 38.0,
+   "bandwidth_um": 0.026000000536441803
+  },
+  {
+   "index": 12,
+   "detector": 1,
+   "subchannel": 13,
+   "wave_um": 1.0010000467300415,
+   "wave_min_um": 0.9879999756813049,
+   "wave_max_um": 1.0140000581741333,
+   "R": 38.0,
+   "bandwidth_um": 0.026000000536441803
+  },
+  {
+   "index": 13,
+   "detector": 1,
+   "subchannel": 14,
+   "wave_um": 1.024999976158142,
+   "wave_min_um": 1.0119999647140503,
+   "wave_max_um": 1.0390000343322754,
+   "R": 38.0,
+   "bandwidth_um": 0.027000000700354576
+  },
+  {
+   "index": 14,
+   "detector": 1,
+   "subchannel": 15,
+   "wave_um": 1.0499999523162842,
+   "wave_min_um": 1.0360000133514404,
+   "wave_max_um": 1.0640000104904175,
+   "R": 38.0,
+   "bandwidth_um": 0.02800000086426735
+  },
+  {
+   "index": 15,
+   "detector": 1,
+   "subchannel": 16,
+   "wave_um": 1.0750000476837158,
+   "wave_min_um": 1.0609999895095825,
+   "wave_max_um": 1.090000033378601,
+   "R": 37.0,
+   "bandwidth_um": 0.028999999165534973
+  },
+  {
+   "index": 16,
+   "detector": 1,
+   "subchannel": 17,
+   "wave_um": 1.1019999980926514,
+   "wave_min_um": 1.0859999656677246,
+   "wave_max_um": 1.1160000562667847,
+   "R": 37.0,
+   "bandwidth_um": 0.029999999329447746
+  },
+  {
+   "index": 17,
+   "detector": 2,
+   "subchannel": 1,
+   "wave_um": 1.1130000352859497,
+   "wave_min_um": 1.0989999771118164,
+   "wave_max_um": 1.1260000467300415,
+   "R": 43.0,
+   "bandwidth_um": 0.026000000536441803
+  },
+  {
+   "index": 18,
+   "detector": 2,
+   "subchannel": 2,
+   "wave_um": 1.1390000581741333,
+   "wave_min_um": 1.125,
+   "wave_max_um": 1.152999997138977,
+   "R": 42.0,
+   "bandwidth_um": 0.027000000700354576
+  },
+  {
+   "index": 19,
+   "detector": 2,
+   "subchannel": 3,
+   "wave_um": 1.1670000553131104,
+   "wave_min_um": 1.1519999504089355,
+   "wave_max_um": 1.1820000410079956,
+   "R": 42.0,
+   "bandwidth_um": 0.02800000086426735
+  },
+  {
+   "index": 20,
+   "detector": 2,
+   "subchannel": 4,
+   "wave_um": 1.1950000524520874,
+   "wave_min_um": 1.1799999475479126,
+   "wave_max_um": 1.2100000381469727,
+   "R": 41.0,
+   "bandwidth_um": 0.028999999165534973
+  },
+  {
+   "index": 21,
+   "detector": 2,
+   "subchannel": 5,
+   "wave_um": 1.2239999771118164,
+   "wave_min_um": 1.2089999914169312,
+   "wave_max_um": 1.2400000095367432,
+   "R": 41.0,
+   "bandwidth_um": 0.029999999329447746
+  },
+  {
+   "index": 22,
+   "detector": 2,
+   "subchannel": 6,
+   "wave_um": 1.253999948501587,
+   "wave_min_um": 1.2380000352859497,
+   "wave_max_um": 1.2690000534057617,
+   "R": 41.0,
+   "bandwidth_um": 0.029999999329447746
+  },
+  {
+   "index": 23,
+   "detector": 2,
+   "subchannel": 7,
+   "wave_um": 1.284000039100647,
+   "wave_min_um": 1.2669999599456787,
+   "wave_max_um": 1.2999999523162842,
+   "R": 42.0,
+   "bandwidth_um": 0.03099999949336052
+  },
+  {
+   "index": 24,
+   "detector": 2,
+   "subchannel": 8,
+   "wave_um": 1.315000057220459,
+   "wave_min_um": 1.2979999780654907,
+   "wave_max_um": 1.3309999704360962,
+   "R": 42.0,
+   "bandwidth_um": 0.03200000151991844
+  },
+  {
+   "index": 25,
+   "detector": 2,
+   "subchannel": 9,
+   "wave_um": 1.3459999561309814,
+   "wave_min_um": 1.3289999961853027,
+   "wave_max_um": 1.3630000352859497,
+   "R": 42.0,
+   "bandwidth_um": 0.03200000151991844
+  },
+  {
+   "index": 26,
+   "detector": 2,
+   "subchannel": 10,
+   "wave_um": 1.378000020980835,
+   "wave_min_um": 1.3600000143051147,
+   "wave_max_um": 1.3960000276565552,
+   "R": 42.0,
+   "bandwidth_um": 0.032999999821186066
+  },
+  {
+   "index": 27,
+   "detector": 2,
+   "subchannel": 11,
+   "wave_um": 1.4119999408721924,
+   "wave_min_um": 1.3930000066757202,
+   "wave_max_um": 1.4299999475479126,
+   "R": 41.0,
+   "bandwidth_um": 0.03400000184774399
+  },
+  {
+   "index": 28,
+   "detector": 2,
+   "subchannel": 12,
+   "wave_um": 1.4459999799728394,
+   "wave_min_um": 1.4259999990463257,
+   "wave_max_um": 1.4639999866485596,
+   "R": 41.0,
+   "bandwidth_um": 0.03500000014901161
+  },
+  {
+   "index": 29,
+   "detector": 2,
+   "subchannel": 13,
+   "wave_um": 1.4809999465942383,
+   "wave_min_um": 1.4609999656677246,
+   "wave_max_um": 1.5,
+   "R": 41.0,
+   "bandwidth_um": 0.035999998450279236
+  },
+  {
+   "index": 30,
+   "detector": 2,
+   "subchannel": 14,
+   "wave_um": 1.5169999599456787,
+   "wave_min_um": 1.496000051498413,
+   "wave_max_um": 1.5369999408721924,
+   "R": 41.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 31,
+   "detector": 2,
+   "subchannel": 15,
+   "wave_um": 1.5540000200271606,
+   "wave_min_um": 1.5329999923706055,
+   "wave_max_um": 1.5750000476837158,
+   "R": 41.0,
+   "bandwidth_um": 0.03799999877810478
+  },
+  {
+   "index": 32,
+   "detector": 2,
+   "subchannel": 16,
+   "wave_um": 1.5920000076293945,
+   "wave_min_um": 1.5700000524520874,
+   "wave_max_um": 1.6130000352859497,
+   "R": 41.0,
+   "bandwidth_um": 0.039000000804662704
+  },
+  {
+   "index": 33,
+   "detector": 2,
+   "subchannel": 17,
+   "wave_um": 1.63100004196167,
+   "wave_min_um": 1.6080000400543213,
+   "wave_max_um": 1.6510000228881836,
+   "R": 41.0,
+   "bandwidth_um": 0.039000000804662704
+  },
+  {
+   "index": 34,
+   "detector": 3,
+   "subchannel": 1,
+   "wave_um": 1.656000018119812,
+   "wave_min_um": 1.6360000371932983,
+   "wave_max_um": 1.6759999990463257,
+   "R": 42.0,
+   "bandwidth_um": 0.039000000804662704
+  },
+  {
+   "index": 35,
+   "detector": 3,
+   "subchannel": 2,
+   "wave_um": 1.6950000524520874,
+   "wave_min_um": 1.6749999523162842,
+   "wave_max_um": 1.715000033378601,
+   "R": 42.0,
+   "bandwidth_um": 0.04100000113248825
+  },
+  {
+   "index": 36,
+   "detector": 3,
+   "subchannel": 3,
+   "wave_um": 1.7350000143051147,
+   "wave_min_um": 1.7139999866485596,
+   "wave_max_um": 1.75600004196167,
+   "R": 41.0,
+   "bandwidth_um": 0.041999999433755875
+  },
+  {
+   "index": 37,
+   "detector": 3,
+   "subchannel": 4,
+   "wave_um": 1.774999976158142,
+   "wave_min_um": 1.753999948501587,
+   "wave_max_um": 1.7970000505447388,
+   "R": 41.0,
+   "bandwidth_um": 0.0430000014603138
+  },
+  {
+   "index": 38,
+   "detector": 3,
+   "subchannel": 5,
+   "wave_um": 1.8179999589920044,
+   "wave_min_um": 1.7949999570846558,
+   "wave_max_um": 1.840000033378601,
+   "R": 41.0,
+   "bandwidth_um": 0.04500000178813934
+  },
+  {
+   "index": 39,
+   "detector": 3,
+   "subchannel": 6,
+   "wave_um": 1.8609999418258667,
+   "wave_min_um": 1.8380000591278076,
+   "wave_max_um": 1.8839999437332153,
+   "R": 41.0,
+   "bandwidth_um": 0.04600000008940697
+  },
+  {
+   "index": 40,
+   "detector": 3,
+   "subchannel": 7,
+   "wave_um": 1.9049999713897705,
+   "wave_min_um": 1.88100004196167,
+   "wave_max_um": 1.9279999732971191,
+   "R": 41.0,
+   "bandwidth_um": 0.04699999839067459
+  },
+  {
+   "index": 41,
+   "detector": 3,
+   "subchannel": 8,
+   "wave_um": 1.9490000009536743,
+   "wave_min_um": 1.9249999523162842,
+   "wave_max_um": 1.9730000495910645,
+   "R": 41.0,
+   "bandwidth_um": 0.04800000041723251
+  },
+  {
+   "index": 42,
+   "detector": 3,
+   "subchannel": 9,
+   "wave_um": 1.9950000047683716,
+   "wave_min_um": 1.9700000286102295,
+   "wave_max_um": 2.0190000534057617,
+   "R": 41.0,
+   "bandwidth_um": 0.04899999871850014
+  },
+  {
+   "index": 43,
+   "detector": 3,
+   "subchannel": 10,
+   "wave_um": 2.0409998893737793,
+   "wave_min_um": 2.015000104904175,
+   "wave_max_um": 2.066999912261963,
+   "R": 40.0,
+   "bandwidth_um": 0.050999999046325684
+  },
+  {
+   "index": 44,
+   "detector": 3,
+   "subchannel": 11,
+   "wave_um": 2.0889999866485596,
+   "wave_min_um": 2.062000036239624,
+   "wave_max_um": 2.115000009536743,
+   "R": 40.0,
+   "bandwidth_um": 0.052000001072883606
+  },
+  {
+   "index": 45,
+   "detector": 3,
+   "subchannel": 12,
+   "wave_um": 2.1389999389648438,
+   "wave_min_um": 2.1110000610351562,
+   "wave_max_um": 2.1659998893737793,
+   "R": 40.0,
+   "bandwidth_um": 0.05400000140070915
+  },
+  {
+   "index": 46,
+   "detector": 3,
+   "subchannel": 13,
+   "wave_um": 2.188999891281128,
+   "wave_min_um": 2.1600000858306885,
+   "wave_max_um": 2.2160000801086426,
+   "R": 40.0,
+   "bandwidth_um": 0.054999999701976776
+  },
+  {
+   "index": 47,
+   "detector": 3,
+   "subchannel": 14,
+   "wave_um": 2.240000009536743,
+   "wave_min_um": 2.2109999656677246,
+   "wave_max_um": 2.2679998874664307,
+   "R": 40.0,
+   "bandwidth_um": 0.0560000017285347
+  },
+  {
+   "index": 48,
+   "detector": 3,
+   "subchannel": 15,
+   "wave_um": 2.2920000553131104,
+   "wave_min_um": 2.26200008392334,
+   "wave_max_um": 2.321000099182129,
+   "R": 40.0,
+   "bandwidth_um": 0.05700000002980232
+  },
+  {
+   "index": 49,
+   "detector": 3,
+   "subchannel": 16,
+   "wave_um": 2.3450000286102295,
+   "wave_min_um": 2.313999891281128,
+   "wave_max_um": 2.375,
+   "R": 40.0,
+   "bandwidth_um": 0.057999998331069946
+  },
+  {
+   "index": 50,
+   "detector": 3,
+   "subchannel": 17,
+   "wave_um": 2.3989999294281006,
+   "wave_min_um": 2.367000102996826,
+   "wave_max_um": 2.440000057220459,
+   "R": 41.0,
+   "bandwidth_um": 0.05900000035762787
+  },
+  {
+   "index": 51,
+   "detector": 4,
+   "subchannel": 1,
+   "wave_um": 2.444999933242798,
+   "wave_min_um": 2.421999931335449,
+   "wave_max_um": 2.4739999771118164,
+   "R": 42.0,
+   "bandwidth_um": 0.057999998331069946
+  },
+  {
+   "index": 52,
+   "detector": 4,
+   "subchannel": 2,
+   "wave_um": 2.50600004196167,
+   "wave_min_um": 2.4700000286102295,
+   "wave_max_um": 2.5420000553131104,
+   "R": 34.0,
+   "bandwidth_um": 0.0729999989271164
+  },
+  {
+   "index": 53,
+   "detector": 4,
+   "subchannel": 3,
+   "wave_um": 2.575000047683716,
+   "wave_min_um": 2.5380001068115234,
+   "wave_max_um": 2.611999988555908,
+   "R": 35.0,
+   "bandwidth_um": 0.07400000095367432
+  },
+  {
+   "index": 54,
+   "detector": 4,
+   "subchannel": 4,
+   "wave_um": 2.6459999084472656,
+   "wave_min_um": 2.6070001125335693,
+   "wave_max_um": 2.684000015258789,
+   "R": 35.0,
+   "bandwidth_um": 0.07599999755620956
+  },
+  {
+   "index": 55,
+   "detector": 4,
+   "subchannel": 5,
+   "wave_um": 2.7190001010894775,
+   "wave_min_um": 2.677999973297119,
+   "wave_max_um": 2.757999897003174,
+   "R": 35.0,
+   "bandwidth_um": 0.07800000160932541
+  },
+  {
+   "index": 56,
+   "detector": 4,
+   "subchannel": 6,
+   "wave_um": 2.7939999103546143,
+   "wave_min_um": 2.752000093460083,
+   "wave_max_um": 2.8350000381469727,
+   "R": 35.0,
+   "bandwidth_um": 0.07900000363588333
+  },
+  {
+   "index": 57,
+   "detector": 4,
+   "subchannel": 7,
+   "wave_um": 2.871000051498413,
+   "wave_min_um": 2.828000068664551,
+   "wave_max_um": 2.9140000343322754,
+   "R": 34.0,
+   "bandwidth_um": 0.08399999886751175
+  },
+  {
+   "index": 58,
+   "detector": 4,
+   "subchannel": 8,
+   "wave_um": 2.9509999752044678,
+   "wave_min_um": 2.9059998989105225,
+   "wave_max_um": 2.994999885559082,
+   "R": 34.0,
+   "bandwidth_um": 0.0860000029206276
+  },
+  {
+   "index": 59,
+   "detector": 4,
+   "subchannel": 9,
+   "wave_um": 3.0329999923706055,
+   "wave_min_um": 2.984999895095825,
+   "wave_max_um": 3.0789999961853027,
+   "R": 34.0,
+   "bandwidth_um": 0.08900000154972076
+  },
+  {
+   "index": 60,
+   "detector": 4,
+   "subchannel": 10,
+   "wave_um": 3.118000030517578,
+   "wave_min_um": 3.069000005722046,
+   "wave_max_um": 3.1640000343322754,
+   "R": 34.0,
+   "bandwidth_um": 0.09099999815225601
+  },
+  {
+   "index": 61,
+   "detector": 4,
+   "subchannel": 11,
+   "wave_um": 3.2039999961853027,
+   "wave_min_um": 3.1549999713897705,
+   "wave_max_um": 3.252000093460083,
+   "R": 35.0,
+   "bandwidth_um": 0.09300000220537186
+  },
+  {
+   "index": 62,
+   "detector": 4,
+   "subchannel": 12,
+   "wave_um": 3.2929999828338623,
+   "wave_min_um": 3.242000102996826,
+   "wave_max_um": 3.3420000076293945,
+   "R": 35.0,
+   "bandwidth_um": 0.09399999678134918
+  },
+  {
+   "index": 63,
+   "detector": 4,
+   "subchannel": 13,
+   "wave_um": 3.382999897003174,
+   "wave_min_um": 3.3299999237060547,
+   "wave_max_um": 3.434000015258789,
+   "R": 35.0,
+   "bandwidth_um": 0.09600000083446503
+  },
+  {
+   "index": 64,
+   "detector": 4,
+   "subchannel": 14,
+   "wave_um": 3.4760000705718994,
+   "wave_min_um": 3.421999931335449,
+   "wave_max_um": 3.5280001163482666,
+   "R": 36.0,
+   "bandwidth_um": 0.09799999743700027
+  },
+  {
+   "index": 65,
+   "detector": 4,
+   "subchannel": 15,
+   "wave_um": 3.569999933242798,
+   "wave_min_um": 3.5139999389648438,
+   "wave_max_um": 3.624000072479248,
+   "R": 36.0,
+   "bandwidth_um": 0.0989999994635582
+  },
+  {
+   "index": 66,
+   "detector": 4,
+   "subchannel": 16,
+   "wave_um": 3.6670000553131104,
+   "wave_min_um": 3.609999895095825,
+   "wave_max_um": 3.7230000495910645,
+   "R": 36.0,
+   "bandwidth_um": 0.10199999809265137
+  },
+  {
+   "index": 67,
+   "detector": 4,
+   "subchannel": 17,
+   "wave_um": 3.7679998874664307,
+   "wave_min_um": 3.7070000171661377,
+   "wave_max_um": 3.8269999027252197,
+   "R": 36.0,
+   "bandwidth_um": 0.10300000011920929
+  },
+  {
+   "index": 68,
+   "detector": 5,
+   "subchannel": 1,
+   "wave_um": 3.8329999446868896,
+   "wave_min_um": 3.813999891281128,
+   "wave_max_um": 3.8510000705718994,
+   "R": 109.0,
+   "bandwidth_um": 0.03500000014901161
+  },
+  {
+   "index": 69,
+   "detector": 5,
+   "subchannel": 2,
+   "wave_um": 3.867000102996826,
+   "wave_min_um": 3.8489999771118164,
+   "wave_max_um": 3.884999990463257,
+   "R": 109.0,
+   "bandwidth_um": 0.035999998450279236
+  },
+  {
+   "index": 70,
+   "detector": 5,
+   "subchannel": 3,
+   "wave_um": 3.9010000228881836,
+   "wave_min_um": 3.881999969482422,
+   "wave_max_um": 3.9189999103546143,
+   "R": 109.0,
+   "bandwidth_um": 0.035999998450279236
+  },
+  {
+   "index": 71,
+   "detector": 5,
+   "subchannel": 4,
+   "wave_um": 3.934999942779541,
+   "wave_min_um": 3.9159998893737793,
+   "wave_max_um": 3.953000068664551,
+   "R": 108.0,
+   "bandwidth_um": 0.035999998450279236
+  },
+  {
+   "index": 72,
+   "detector": 5,
+   "subchannel": 5,
+   "wave_um": 3.9700000286102295,
+   "wave_min_um": 3.950000047683716,
+   "wave_max_um": 3.98799991607666,
+   "R": 109.0,
+   "bandwidth_um": 0.035999998450279236
+  },
+  {
+   "index": 73,
+   "detector": 5,
+   "subchannel": 6,
+   "wave_um": 4.005000114440918,
+   "wave_min_um": 3.984999895095825,
+   "wave_max_um": 4.02400016784668,
+   "R": 110.0,
+   "bandwidth_um": 0.035999998450279236
+  },
+  {
+   "index": 74,
+   "detector": 5,
+   "subchannel": 7,
+   "wave_um": 4.039999961853027,
+   "wave_min_um": 4.019999980926514,
+   "wave_max_um": 4.059000015258789,
+   "R": 110.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 75,
+   "detector": 5,
+   "subchannel": 8,
+   "wave_um": 4.076000213623047,
+   "wave_min_um": 4.054999828338623,
+   "wave_max_um": 4.09499979019165,
+   "R": 111.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 76,
+   "detector": 5,
+   "subchannel": 9,
+   "wave_um": 4.111999988555908,
+   "wave_min_um": 4.091000080108643,
+   "wave_max_um": 4.13100004196167,
+   "R": 112.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 77,
+   "detector": 5,
+   "subchannel": 10,
+   "wave_um": 4.1479997634887695,
+   "wave_min_um": 4.125999927520752,
+   "wave_max_um": 4.166999816894531,
+   "R": 113.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 78,
+   "detector": 5,
+   "subchannel": 11,
+   "wave_um": 4.184000015258789,
+   "wave_min_um": 4.1620001792907715,
+   "wave_max_um": 4.203000068664551,
+   "R": 113.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 79,
+   "detector": 5,
+   "subchannel": 12,
+   "wave_um": 4.21999979019165,
+   "wave_min_um": 4.198999881744385,
+   "wave_max_um": 4.239999771118164,
+   "R": 115.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 80,
+   "detector": 5,
+   "subchannel": 13,
+   "wave_um": 4.256999969482422,
+   "wave_min_um": 4.235000133514404,
+   "wave_max_um": 4.2769999504089355,
+   "R": 114.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 81,
+   "detector": 5,
+   "subchannel": 14,
+   "wave_um": 4.294000148773193,
+   "wave_min_um": 4.270999908447266,
+   "wave_max_um": 4.313000202178955,
+   "R": 115.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 82,
+   "detector": 5,
+   "subchannel": 15,
+   "wave_um": 4.330999851226807,
+   "wave_min_um": 4.308000087738037,
+   "wave_max_um": 4.35099983215332,
+   "R": 116.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 83,
+   "detector": 5,
+   "subchannel": 16,
+   "wave_um": 4.368000030517578,
+   "wave_min_um": 4.34499979019165,
+   "wave_max_um": 4.388000011444092,
+   "R": 116.0,
+   "bandwidth_um": 0.03799999877810478
+  },
+  {
+   "index": 84,
+   "detector": 5,
+   "subchannel": 17,
+   "wave_um": 4.40500020980835,
+   "wave_min_um": 4.381999969482422,
+   "wave_max_um": 4.426000118255615,
+   "R": 117.0,
+   "bandwidth_um": 0.03799999877810478
+  },
+  {
+   "index": 85,
+   "detector": 6,
+   "subchannel": 1,
+   "wave_um": 4.434999942779541,
+   "wave_min_um": 4.418000221252441,
+   "wave_max_um": 4.452000141143799,
+   "R": 128.0,
+   "bandwidth_um": 0.03500000014901161
+  },
+  {
+   "index": 86,
+   "detector": 6,
+   "subchannel": 2,
+   "wave_um": 4.4670000076293945,
+   "wave_min_um": 4.449999809265137,
+   "wave_max_um": 4.484000205993652,
+   "R": 125.0,
+   "bandwidth_um": 0.035999998450279236
+  },
+  {
+   "index": 87,
+   "detector": 6,
+   "subchannel": 3,
+   "wave_um": 4.5,
+   "wave_min_um": 4.48199987411499,
+   "wave_max_um": 4.517000198364258,
+   "R": 127.0,
+   "bandwidth_um": 0.03500000014901161
+  },
+  {
+   "index": 88,
+   "detector": 6,
+   "subchannel": 4,
+   "wave_um": 4.5329999923706055,
+   "wave_min_um": 4.514999866485596,
+   "wave_max_um": 4.550000190734863,
+   "R": 126.0,
+   "bandwidth_um": 0.035999998450279236
+  },
+  {
+   "index": 89,
+   "detector": 6,
+   "subchannel": 5,
+   "wave_um": 4.565999984741211,
+   "wave_min_um": 4.547999858856201,
+   "wave_max_um": 4.584000110626221,
+   "R": 127.0,
+   "bandwidth_um": 0.035999998450279236
+  },
+  {
+   "index": 90,
+   "detector": 6,
+   "subchannel": 6,
+   "wave_um": 4.599999904632568,
+   "wave_min_um": 4.581999778747559,
+   "wave_max_um": 4.618000030517578,
+   "R": 125.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 91,
+   "detector": 6,
+   "subchannel": 7,
+   "wave_um": 4.635000228881836,
+   "wave_min_um": 4.614999771118164,
+   "wave_max_um": 4.6529998779296875,
+   "R": 127.0,
+   "bandwidth_um": 0.035999998450279236
+  },
+  {
+   "index": 92,
+   "detector": 6,
+   "subchannel": 8,
+   "wave_um": 4.669000148773193,
+   "wave_min_um": 4.64900016784668,
+   "wave_max_um": 4.688000202178955,
+   "R": 126.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 93,
+   "detector": 6,
+   "subchannel": 9,
+   "wave_um": 4.703999996185303,
+   "wave_min_um": 4.684000015258789,
+   "wave_max_um": 4.7230000495910645,
+   "R": 128.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 94,
+   "detector": 6,
+   "subchannel": 10,
+   "wave_um": 4.738999843597412,
+   "wave_min_um": 4.718999862670898,
+   "wave_max_um": 4.757999897003174,
+   "R": 130.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 95,
+   "detector": 6,
+   "subchannel": 11,
+   "wave_um": 4.7729997634887695,
+   "wave_min_um": 4.752999782562256,
+   "wave_max_um": 4.791999816894531,
+   "R": 131.0,
+   "bandwidth_um": 0.035999998450279236
+  },
+  {
+   "index": 96,
+   "detector": 6,
+   "subchannel": 12,
+   "wave_um": 4.808000087738037,
+   "wave_min_um": 4.788000106811523,
+   "wave_max_um": 4.827000141143799,
+   "R": 132.0,
+   "bandwidth_um": 0.035999998450279236
+  },
+  {
+   "index": 97,
+   "detector": 6,
+   "subchannel": 13,
+   "wave_um": 4.8429999351501465,
+   "wave_min_um": 4.822000026702881,
+   "wave_max_um": 4.861999988555908,
+   "R": 131.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 98,
+   "detector": 6,
+   "subchannel": 14,
+   "wave_um": 4.879000186920166,
+   "wave_min_um": 4.85699987411499,
+   "wave_max_um": 4.89900016784668,
+   "R": 130.0,
+   "bandwidth_um": 0.03799999877810478
+  },
+  {
+   "index": 99,
+   "detector": 6,
+   "subchannel": 15,
+   "wave_um": 4.914999961853027,
+   "wave_min_um": 4.89300012588501,
+   "wave_max_um": 4.935999870300293,
+   "R": 130.0,
+   "bandwidth_um": 0.03799999877810478
+  },
+  {
+   "index": 100,
+   "detector": 6,
+   "subchannel": 16,
+   "wave_um": 4.951000213623047,
+   "wave_min_um": 4.929999828338623,
+   "wave_max_um": 4.9720001220703125,
+   "R": 132.0,
+   "bandwidth_um": 0.03700000047683716
+  },
+  {
+   "index": 101,
+   "detector": 6,
+   "subchannel": 17,
+   "wave_um": 4.98799991607666,
+   "wave_min_um": 4.966000080108643,
+   "wave_max_um": 5.008999824523926,
+   "R": 135.0,
+   "bandwidth_um": 0.03700000047683716
+  }
+ ]
+}

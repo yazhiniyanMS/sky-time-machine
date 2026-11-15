@@ -5,9 +5,10 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { CommunityPanel } from "@/components/CommunityPanel";
 import { ImageCanvas, type View } from "@/components/ImageCanvas";
-import { LightCurve } from "@/components/LightCurve";
-import { Button, Checks, ErrorNote, f, Panel, Progress, Stat, TierBadge, VerificationBadge } from "@/components/ui";
-import { type CandidateDetail, fetchLayer, get, type Job, type Layer, pollJob, post } from "@/lib/api";
+import { AssessmentPanel, CounterpartsPanel, DataKindLegend, HistoryPanel, PsfPanel } from "@/components/CandidatePanels";
+import { SaveToInvestigation, WatchButton } from "@/components/SaveTo";
+import { Button, ErrorNote, f, Panel, Progress, Stat, TierBadge, VerificationBadge } from "@/components/ui";
+import { API, type CandidateDetail, fetchLayer, get, type Layer } from "@/lib/api";
 import { CLASS_LABEL, decDms, fmtDate, raHms, TRACK_LABEL } from "@/lib/astro";
 import { percentileLimits } from "@/lib/render";
 import { href } from "@/lib/viewstate";
@@ -18,7 +19,6 @@ export default function DiscoveryPage() {
   const [err, setErr] = useState<string | null>(null);
   const [layers, setLayers] = useState<Record<string, Layer>>({});
   const [view, setView] = useState<View | null>(null);
-  const [phot, setPhot] = useState<Job | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -55,14 +55,7 @@ export default function DiscoveryPage() {
   const common = { view, onView: setView, markers };
   const synthetic = comp.provenance.inputs?.some((i) => i.synthetic);
 
-  async function runPhot() {
-    try {
-      const r = await post<{ job_id: string }>(`/api/candidates/${c!.id}/photometry`, {});
-      setPhot(await pollJob(r.job_id, setPhot, 1200));
-    } catch (e: any) {
-      setErr(e.message);
-    }
-  }
+
 
   return (
     <div className="p-4 max-w-[1500px] w-full mx-auto flex flex-col gap-4">
@@ -75,6 +68,7 @@ export default function DiscoveryPage() {
             {synthetic && <span className="text-[11px] text-bad border border-bad/50 rounded px-1">SYNTHETIC INPUTS</span>}
           </div>
           <p className="text-[13px] text-muted">{CLASS_LABEL[c.machine_class]} <span className="text-faint">· machine label, not an identification</span></p>
+          <div className="mt-2"><DataKindLegend /></div>
         </div>
         <div className="flex flex-wrap gap-5 ml-auto">
           <Stat label="RA" value={raHms(c.ra)} sub={`${c.ra.toFixed(6)}°`} />
@@ -94,10 +88,7 @@ export default function DiscoveryPage() {
 
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="flex flex-col gap-4 lg:col-span-2">
-          <Panel title="Why it was flagged">
-            <p className="text-[13px] leading-relaxed">{c.rank_explanation}</p>
-            <p className="text-[12px] text-faint mt-2">{c.machine_class_description}</p>
-          </Panel>
+          <AssessmentPanel id={c.id} />
           <Panel title="Measurements">
             <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-[12px] num">
               {[
@@ -115,14 +106,20 @@ export default function DiscoveryPage() {
             </dl>
             {m.paired_with && <p className="text-[12px] mt-2">Paired with {m.paired_with.map((p: string) => <Link key={p} className="text-accent num mr-2" href={`/discovery/${p}`}>{p}</Link>)}</p>}
           </Panel>
-          <Panel title="Quality checks"><Checks checks={c.quality_checks} /></Panel>
-          <Panel title="Brightness across matched epochs" right={<Button onClick={runPhot} disabled={phot?.status === "running" || phot?.status === "queued"}>Run forced photometry</Button>}>
-            {!phot && <p className="text-[12px] text-muted">Measures the flux at this position in every archive exposure of detector {comp.detector} that observed it within half a bandwidth of the candidate&apos;s wavelength. Downloads ~4 MB per exposure from IRSA.</p>}
-            {phot && phot.status !== "done" && <Progress value={phot.progress} label={phot.message} />}
-            {phot?.status === "done" && <LightCurve result={phot.result as any} highlight={[comp.t_a_mjd ?? 0, comp.t_b_mjd ?? 0]} />}
-          </Panel>
+          <div className="grid xl:grid-cols-2 gap-4 [&>*]:min-w-0">
+            <PsfPanel id={c.id} />
+            <CounterpartsPanel id={c.id} />
+          </div>
+          <HistoryPanel id={c.id} ra={c.ra} dec={c.dec} detector={comp.detector}
+            epochs={[{ x: comp.t_a_mjd ?? 0, label: "A" }, { x: comp.t_b_mjd ?? 0, label: "B" }]} />
         </div>
         <div className="flex flex-col gap-4">
+          <Panel title="Save & monitor">
+            <div className="flex flex-col gap-3">
+              <SaveToInvestigation kind="candidate" refId={c.id} label={CLASS_LABEL[c.machine_class]} defaults={{ ra: c.ra, dec: c.dec }} />
+              <WatchButton kind="candidate" refId={c.id} label={c.id} />
+            </div>
+          </Panel>
           <Panel title="Share & explore">
             <div className="flex flex-col gap-2 text-[13px]">
               <Button onClick={() => { navigator.clipboard?.writeText(window.location.href); setCopied(true); }}>{copied ? "Permalink copied" : "Copy permalink"}</Button>
@@ -139,6 +136,16 @@ export default function DiscoveryPage() {
                   <span className="num">{t.id}</span> · {TRACK_LABEL[t.kind]} · {t.members.length} detection(s)
                 </div>
               ))}
+          </Panel>
+          <Panel title="Processing history">
+            <dl className="grid grid-cols-[110px_1fr] gap-y-1 text-[12px] num">
+              <dt className="text-faint font-sans">Comparison</dt><dd>{comp.id}</dd>
+              <dt className="text-faint font-sans">Pipeline</dt><dd>{c.pipeline_version}</dd>
+              <dt className="text-faint font-sans">Processed</dt><dd>{String(comp.provenance.processed_at ?? "").slice(0, 19)}</dd>
+              <dt className="text-faint font-sans">Detected</dt><dd>{c.created_at.slice(0, 19)}</dd>
+              <dt className="text-faint font-sans">Software</dt><dd className="break-all">{Object.entries(comp.provenance.software ?? {}).map(([k, v]) => `${k} ${v}`).join(" · ")}</dd>
+            </dl>
+            <a className="text-[12px] text-accent mt-2 inline-block" href={`${API}/api/comparisons/${comp.id}/references.csv`}>Observation references (CSV)</a>
           </Panel>
           <Panel title="Source observations">
             <ul className="text-[12px] flex flex-col gap-1 num">

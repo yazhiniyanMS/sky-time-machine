@@ -224,3 +224,226 @@ export async function pollJob(jobId: string, onProgress?: (j: Job) => void, inte
     await new Promise((r) => setTimeout(r, intervalMs));
   }
 }
+
+// ---------------------------------------------------------------- V2 research platform types
+export interface DiscoveryItem extends CandidateBrief {
+  diff_snr: number | null;
+  snr_a: number | null;
+  snr_b: number | null;
+  wave_um: number | null;
+  survey: string | null;
+  collection: string | null;
+  pipeline_version: string;
+  created_at: string;
+  failed_checks: string[];
+  counterpart_association: string | null;
+}
+export interface DiscoveryPage {
+  items: DiscoveryItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
+  n_comparisons_processed: number;
+  class_descriptions: Record<string, string>;
+  note: string;
+}
+export interface Channel {
+  index: number;
+  detector: number;
+  subchannel: number;
+  wave_um: number;
+  wave_min_um: number;
+  wave_max_um: number;
+  R: number;
+  bandwidth_um: number;
+}
+export interface CubeChannel extends Channel {
+  plane: number;
+  surface_brightness_mjy_sr: number | null;
+  nhits: number;
+  flags: number;
+  missing: boolean;
+  missing_reason: string | null;
+}
+export interface CubeSpectrum {
+  ra: number;
+  dec: number;
+  tile: string;
+  tile_id: string;
+  pixel: [number, number];
+  pixel_scale_arcsec: number;
+  unit: string;
+  mjd_range: [number, number];
+  blank_channels: string[];
+  channels: CubeChannel[];
+  quantity: string;
+}
+export interface PhotPoint {
+  product_id: string;
+  obs_id: string;
+  detector: number | null;
+  channel: number | null;
+  subchannel: number | null;
+  t_mid_mjd: number;
+  wave_um: number | null;
+  bandwidth_um: number | null;
+  flux_ujy: number | null;
+  flux_err_ujy: number | null;
+  aperture_correction: number | null;
+  flux_pointsource_ujy: number | null;
+  flux_pointsource_err_ujy: number | null;
+  masked_fraction: number | null;
+  status: "ok" | "masked" | "outside" | "error";
+  quality: "good" | "warning" | "bad" | null;
+  message: string | null;
+  access_url: string | null;
+  extra: Record<string, any>;
+}
+export interface SpectroRun {
+  id: string;
+  status: string;
+  created_at: string;
+  ra: number;
+  dec: number;
+  label: string | null;
+  candidate_id: string | null;
+  params: Record<string, any>;
+  provenance: Record<string, any>;
+  n_points: number;
+  error: string | null;
+  points?: PhotPoint[];
+}
+export interface LightCurveStats {
+  n_points: number;
+  n_visits?: number;
+  time_span_days?: number;
+  coverage_gaps?: { from_mjd: number; to_mjd: number; days: number }[];
+  mean_ujy?: number;
+  weighted_mean_ujy?: number;
+  weighted_mean_err_ujy?: number;
+  median_ujy?: number;
+  std_ujy?: number | null;
+  relative_scatter?: number | null;
+  chi2?: number;
+  dof?: number;
+  reduced_chi2?: number;
+  p_value_constant?: number;
+  fractional_excess_variance?: number | null;
+  verdict: string;
+  explanation?: string;
+  config?: Record<string, any>;
+  systematics?: string[];
+  systematics_possible?: boolean;
+}
+export interface LightCurve {
+  run_id: string;
+  channel?: Channel;
+  channels: (Channel & { n_measurements: number })[];
+  points?: PhotPoint[];
+  excluded?: { product_id: string; t_mid_mjd: number; status: string; quality: string | null; message: string | null }[];
+  stats?: LightCurveStats;
+  quantity?: string;
+  note?: string;
+}
+export interface Counterpart {
+  id: string;
+  type: string | null;
+  ra: number;
+  dec: number;
+  sep_arcsec: number;
+  pos_err_arcsec: number | null;
+  sigma_arcsec: number;
+  n_sigma: number;
+  within_3sigma: boolean;
+  reference: string | null;
+  url: string | null;
+  phot_g_mean_mag?: number | null;
+  parallax?: number | null;
+  pm?: number | null;
+}
+export interface CounterpartResult {
+  candidate_id: string;
+  radius_arcsec: number;
+  candidate_err_arcsec: number;
+  association: string;
+  explanation: string;
+  assessed_at: string;
+  method: string;
+  catalogs: Record<string, {
+    status: string; service: string | null; message: string; cached: boolean; association: string; explanation: string;
+    expected_chance: number; density_per_arcmin2: number; match_radius_arcsec: number; counterparts: Counterpart[];
+  }>;
+}
+export interface Assessment {
+  candidate_id: string;
+  data_kinds: Record<string, string>;
+  why_detected: { text: string; threshold_sigma: number; peak_significance: number; npix: number };
+  supporting_measurements: { name: string; value: any; error?: number | null; unit: string; kind: string }[];
+  checks_passed: Check[];
+  checks_failed: Check[];
+  comparison_checks_failed: Check[];
+  classification: { machine_class: string; rule: string; quality_tier: string; verification_status: string };
+  psf: Record<string, any>;
+  counterparts: { association: string; text: string; assessed_at: string } | null;
+  remaining_uncertainties: string[];
+  processing_history: Record<string, any>;
+}
+export interface InvestigationItem {
+  id: number;
+  kind: string;
+  ref_id: string;
+  label: string;
+  note: string;
+  payload: Record<string, any>;
+  added_at: string;
+}
+export interface Investigation {
+  id: string;
+  title: string;
+  description: string;
+  owner: string;
+  ra: number | null;
+  dec: number | null;
+  radius_deg: number | null;
+  notes: string;
+  references: { title?: string; url?: string; bibcode?: string }[];
+  created_at: string;
+  updated_at: string;
+  n_items: number;
+  items?: InvestigationItem[];
+}
+export interface WatchEntry {
+  id: string;
+  kind: string;
+  label: string;
+  ref_id: string | null;
+  ra: number;
+  dec: number;
+  radius_deg: number;
+  n_known_products: number;
+  created_at: string;
+  last_checked_at: string | null;
+  last_new_count: number;
+  checks: { checked_at: string; status: string; n_products: number; new_products: string[]; message: string }[];
+}
+export interface CoverageMap {
+  ra: number;
+  dec: number;
+  size_deg: number;
+  cells: number;
+  cell_size_arcmin: number;
+  n_products_queried: number;
+  cell_ra: number[][];
+  cell_dec: number[][];
+  layers: Record<string, number[][]> & { pairs_by_detector: Record<string, number[][]> };
+  method: string;
+  computed_at?: string;
+}
+
+export async function patch<T>(p: string, body: unknown): Promise<T> {
+  return req<T>(p, { method: "PATCH", body: JSON.stringify(body) });
+}
+export async function del<T>(p: string): Promise<T> {
+  return req<T>(p, { method: "DELETE" });
+}

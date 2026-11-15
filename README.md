@@ -12,6 +12,8 @@ Nothing in the application is simulated: synthetic images exist only inside the 
 
 ![Difference view of two real SPHEREx DR1 epochs of M31](docs/screenshots/compare-difference.jpg)
 
+![Spectral explorer: IRSA DR1 coadded spectrum and per-exposure spectrophotometry of an M31 disk position](docs/screenshots/spectra.jpg)
+
 ## What works today
 
 | Area | Status |
@@ -27,6 +29,15 @@ Nothing in the application is simulated: synthetic images exist only inside the 
 | Cross-comparison tracking (stationary / linear-motion linking) | Working on stored candidates |
 | Sky Intelligence assistant | Rule-based without a key; Claude via server-side key (not exercised in CI) |
 | Community annotations, moderation queue, audit log, reviewer verification | Working (shared-token moderation, no user accounts) |
+| **V2** Discovery feed (sort, filters, ID search, pagination, CSV) | Working on stored candidates |
+| **V2** Spectral explorer: IRSA DR1 cube spectrum + per-exposure spectrophotometry (byte-range stamps) | Working (verified against IRSA cutouts) |
+| **V2** Multi-epoch light curves per official channel, statistics + systematics warnings, CSV | Working |
+| **V2** Known-object cross-matching (SIMBAD, Gaia DR3) with association classes | Working (mirrors + cache) |
+| **V2** Investigations (persistent, shareable), Markdown/JSON export, HTML scientific report | Working |
+| **V2** Watchlists with new-release checks | Working (manual; optional background interval) |
+| **V2** Sky layers: IAU boundaries, figures, galaxies, nebulae, saved candidates, coverage cells | Working |
+| **V2** Coverage heatmap (images vs exposures vs visits vs matched pairs) | Working; large fields depend on IRSA SIA availability |
+| **V2** Explainable candidate assessment, PSF panel, assistant citations | Working |
 
 ## Quick start (macOS)
 
@@ -61,10 +72,10 @@ cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 
 - [Architecture](docs/ARCHITECTURE.md) · [Data sources](docs/DATA_SOURCES.md) · [Scientific methodology](docs/SCIENTIFIC_METHODOLOGY.md)
 - [Processing pipeline](docs/PROCESSING_PIPELINE.md) · [API](docs/API.md) · [Development](docs/DEVELOPMENT.md)
-- [Limitations](docs/LIMITATIONS.md) · [Contributing](CONTRIBUTING.md)
+- [Limitations](docs/LIMITATIONS.md) · [Contributing](CONTRIBUTING.md) · [Product expansion V2 plan](docs/PRODUCT_EXPANSION_V2.md)
 
 ## Acknowledgements
 
 This project uses data from SPHEREx, a joint project of NASA's Jet Propulsion Laboratory and Caltech, served by
 NASA/IPAC IRSA. Sky backgrounds: DSS2 and 2MASS HiPS (CDS, mirrored at IRSA). Sky viewer: Aladin Lite (CDS,
-GPL-3). Name resolution: CDS Sesame. Scientific software: Astropy, NumPy, SciPy, reproject, photutils.
+GPL-3). Name resolution: CDS Sesame. Catalogues: SIMBAD (CDS; CfA mirror), Gaia DR3 (ESA). Constellations: d3-celestial (BSD-3). Scientific software: Astropy, NumPy, SciPy, reproject, photutils.

@@ -156,6 +156,90 @@ The same aperture and annulus as detection are applied at a fixed position in ev
 whose wavelength at the target is within 0.5 bandwidth of the candidate's. Exposures at other wavelengths are
 listed but not measured.
 
+## Spectra (two real sources, never mixed)
+
+**Archive coadd.** IRSA's DR1 all-sky spectral cube (`spherex_dr1_cube`, HEALPix order-5 tiles of
+512 × 512 × 102) gives the time-averaged surface brightness (MJy/sr) in the official 102 channels. Each
+channel's detector, sub-channel, λ, λmin–λmax, R and bandwidth come from the cube's `SPECTRAL_CHANNELS`
+table. We read only the pixel nearest the position from each plane of `IMAGE`, `NHITS` and `FLAGS`, using HTTP
+Range requests. The cube has **no uncertainty plane**, so no error bars are drawn; NHITS is shown instead.
+Channels listed in the header's `BLANKCH` (D3:17 and D4:01 in DR1), and NaN pixels, are reported as missing.
+
+**Per-exposure spectrophotometry.** Every Level 2 exposure covering the position samples it at one
+wavelength. For each exposure we read a 17-row stamp of `IMAGE`, `FLAGS` and `VARIANCE` with HTTP Range
+requests, preferring the public AWS mirror and falling back to IRSA. The stamps reuse the forced-photometry
+code of the comparison pipeline:
+- aperture r = 1.5 × header FWHM
+- background = annulus median, r+2 to r+6 px
+- 1σ errors from VARIANCE.
+
+Full-frame `FLAGS` are RICE_1 tile-compressed, one tile per row. Only the needed tile descriptors and heap
+bytes are read and decompressed. On a real M31 exposure the IMAGE, FLAGS and VARIANCE stamp pixels are
+identical to IRSA's cutout service, and the fluxes agree to 0.003 %. The only difference is the ZODI model,
+which the annulus removes.
+
+Each sample is assigned to the official channel of its detector whose λmin–λmax contains the wavelength at
+the position. Samples outside every range are kept but left unassigned: on the D1 blue edge, 0.736–0.740 µm
+is below channel 0's 0.743 µm.
+
+An optional *point-source* flux divides by the EPSF enclosed fraction in the aperture (≈ 0.96–0.97 for D1).
+It is labelled as derived, and it is wrong for extended sources.
+
+## Light curves
+
+A light curve uses only measurements in **one official channel**, so spectral slope across the detector is
+not mistaken for variability. Reported quantities:
+- mean, median and standard deviation (the *measured* scatter)
+- weighted mean and its error
+- χ² of the constant-flux hypothesis, with a 2 % fractional systematic floor added to each error
+- p-value
+- fractional excess variance (when positive)
+- the number of independent visits (exposures within 0.5 d are one visit)
+- cadence gaps longer than 30 d.
+
+"Statistically significant variability" requires p < 10⁻³ and at least 3 good points.
+
+Measured systematic warnings accompany every verdict:
+- the wavelength spread within the channel exceeds half a bandwidth
+- the annulus background inside the aperture exceeds the source flux (extended emission)
+- measurements come from more than one detector.
+
+On the real M31-disk candidate ST-2026-000002, channel 9 has 4 points with χ² = 42.8 for 3 dof. The background
+term is 6.9 × the source flux, so the interface reports *significant scatter, systematics likely*, not
+variability. SPHEREx revisits a position about every six months, so a channel typically has 2–4 points; the
+plots never interpolate between them.
+
+## Known-object cross-matching
+
+For each candidate, SIMBAD and Gaia DR3 are queried in a cone (default 15″). Each source gets a
+normalised separation n = sep / √(σ_cand² + σ_cat²); positional errors come from SIMBAD `coo_err_maj` and Gaia
+`ra_error`/`dec_error`, with 0.1″ when absent. The expected number of chance alignments inside the 3σ match
+circle is the catalogue's density in the cone times the circle's area.
+
+| Class | Rule |
+|---|---|
+| confirmed_positional | exactly one source within 3σ, and chance expectation < 0.05 (not allowed when the query hit its row limit) |
+| possible | source(s) within 3σ, but several, or chance expectation ≥ 0.05 |
+| inconclusive | only sources beyond 3σ, or the service failed |
+| none | every catalogue answered and none has a source in the cone |
+
+The overall class takes the best evidence, but a failed catalogue never allows "none". No class implies
+physical identity, and "none" never implies a new object. On ST-2026-000002 the nearest SIMBAD source,
+GSC 02801-02015, is 2.5″ away (1.8σ). Chance expectations are 0.39 (SIMBAD) and 1.0 (Gaia) in the crowded M31
+field, so the result is *possible*.
+
+## Coverage maps
+
+Coverage maps evaluate every Level 2 image overlapping a field on a grid of cells, using each image's own
+header WCS and wavelength lookup:
+- images (product × detector)
+- distinct exposures
+- independent visits (exposures closer than 0.5 d)
+- detectors
+- spectrally matched pairs: same detector, |Δλ| ≤ ½ bandwidth at the cell, baseline ≥ 0.5 d.
+
+Images are never counted as epochs. In the test case, 6 images from 6 exposures are only 2 visits.
+
 ## Validation status
 
 The algorithms are tested with synthetic images that have known answers: injection and recovery, null scenes,

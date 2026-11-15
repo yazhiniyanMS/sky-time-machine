@@ -48,7 +48,7 @@ class FakeAdapter(SpherexAdapter):
         }
         self.times = {"SYNTHETIC-0001_1D1": 61000.0, "SYNTHETIC-0002_1D1": 61030.0}
 
-    def query_position(self, ra, dec, radius_deg=0.01):
+    def query_position(self, ra, dec, radius_deg=0.01, collection=None, fresh=False):
         return [
             ObservationRecord(
                 "SYNTHETIC",

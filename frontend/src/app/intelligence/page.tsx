@@ -6,15 +6,18 @@ import { Button, ErrorNote, inputCls } from "@/components/ui";
 import { get, post } from "@/lib/api";
 import { readViewState } from "@/lib/viewstate";
 
+interface Citation { ref: string; kind: string; url: string | null; note: string }
 interface Msg { role: "user" | "assistant"; content: string; meta?: { mode: string; model: string | null; grounding?: any; notice?: string } }
 
 const EXAMPLES = [
-  "What changed in this region?",
-  "Show unusual candidates.",
+  "Find the most significant candidates in this region.",
   "Explain why this candidate was flagged.",
-  "Compare the brightness across available observations.",
-  "Is this detection likely to be an artifact?",
-  "Explain the scientific significance of this observation.",
+  "Show its known catalogue counterparts.",
+  "Compare its brightness across available epochs.",
+  "Explain the PSF matching used in this comparison.",
+  "Which artifact checks failed?",
+  "Summarize this investigation.",
+  "Find other candidates with similar measured properties.",
 ];
 
 // Minimal, safe markdown: headings, bold, inline code, bullet lists. No HTML injection.
@@ -36,13 +39,16 @@ function Markdown({ text }: { text: string }) {
 
 function Intelligence() {
   const v = readViewState(useSearchParams());
+
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [status, setStatus] = useState<{ provider: string; model: string | null; llm_enabled: boolean } | null>(null);
   const end = useRef<HTMLDivElement>(null);
-  const ctx = { ra: v.ra, dec: v.dec, fov: v.fov, detector: v.det, product_a: v.a, product_b: v.b, candidate_id: v.cand, comparison_id: v.cmp, radius: Math.min(1, v.fov ?? 0.25) };
+  const sp = useSearchParams();
+  const ctx = { ra: v.ra, dec: v.dec, fov: v.fov, detector: v.det, product_a: v.a, product_b: v.b, candidate_id: v.cand, comparison_id: v.cmp,
+    investigation_id: sp.get("investigation") ?? undefined, run_id: sp.get("run") ?? undefined, radius: Math.min(1, v.fov ?? 0.25) };
 
   useEffect(() => { get<typeof status>("/api/assistant/status").then(setStatus).catch(() => {}); }, []);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
@@ -69,6 +75,8 @@ function Intelligence() {
     v.cmp && `Comparison ${v.cmp}`,
     v.cand && `Candidate ${v.cand}`,
     v.det && `Detector ${v.det}`,
+    ctx.investigation_id && `Investigation ${ctx.investigation_id}`,
+    ctx.run_id && `Spectrophotometry ${ctx.run_id}`,
   ].filter(Boolean) as string[];
 
   return (
@@ -104,6 +112,18 @@ function Intelligence() {
                 {m.meta.grounding?.documents?.length > 0 && <span>docs: {m.meta.grounding.documents.join("; ")}</span>}
                 {m.meta.notice && <span className="text-warn">{m.meta.notice}</span>}
               </div>
+            )}
+            {m.meta?.grounding?.citations?.length > 0 && (
+              <details className="mt-1 text-[11px]">
+                <summary className="cursor-pointer text-faint">Records cited ({m.meta!.grounding.citations.length})</summary>
+                <ul className="mt-1 flex flex-col gap-0.5">
+                  {(m.meta!.grounding.citations as Citation[]).map((c) => (
+                    <li key={c.ref} className="num text-muted">
+                      [{c.url ? <a className="text-accent" href={c.url} target={c.url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">{c.ref}</a> : c.ref}] {c.kind}{c.note ? ` · ${c.note}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </details>
             )}
           </div>
         ))}

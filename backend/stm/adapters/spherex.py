@@ -116,15 +116,17 @@ class SpherexAdapter(SurveyAdapter):
             "bands": SPHEREX_BANDS,
         }
 
-    def query_position(self, ra: float, dec: float, radius_deg: float = 0.01) -> list[ObservationRecord]:
+    def query_position(
+        self, ra: float, dec: float, radius_deg: float = 0.01, collection: str | None = None, fresh: bool = False
+    ) -> list[ObservationRecord]:
         params = {
-            "COLLECTION": self.settings.spherex_collection,
+            "COLLECTION": collection or self.settings.spherex_collection,
             "POS": f"circle {ra:.7f} {dec:.7f} {radius_deg:.5f}",
             "RESPONSEFORMAT": "VOTABLE",
         }
         key = f"spherex/sia/{stable_key(params['COLLECTION'], params['POS'])}.xml"
         raw: bytes | None = None
-        if self.storage.exists(key):
+        if self.storage.exists(key) and not fresh:
             p = self.storage.local_path(key)
             if time.time() - p.stat().st_mtime < SIA_CACHE_TTL_S:
                 raw = self.storage.read_bytes(key)
@@ -187,6 +189,8 @@ class SpherexAdapter(SurveyAdapter):
     def _range(self, url: str, start: int, length: int) -> bytes:
         def go() -> bytes:
             r = self.client.get(url, headers={"Range": f"bytes={start}-{start + length - 1}"})
+            if r.status_code == 416:  # range starts beyond end of file
+                return b""
             r.raise_for_status()
             if r.status_code != 206:
                 raise ArchiveError("Archive ignored HTTP Range request")
@@ -220,11 +224,16 @@ class SpherexAdapter(SurveyAdapter):
         key = f"spherex/headers/{record.product_id}.hdr"
         if self.storage.exists(key):
             return fits.Header.fromstring(self.storage.read_bytes(key).decode("ascii"))
-        for name, hdr, _, _ in self.iter_remote_headers(record.access_url, stop_at="IMAGE"):
-            if name == "IMAGE":
-                self.storage.write_bytes(key, hdr.tostring().encode("ascii"))
-                return hdr
-        raise ArchiveError(f"No IMAGE extension in {record.access_url}")
+        last: Exception | None = None
+        for url in self.range_urls(record):
+            try:
+                for name, hdr, _, _ in self.iter_remote_headers(url, stop_at="IMAGE"):
+                    if name == "IMAGE":
+                        self.storage.write_bytes(key, hdr.tostring().encode("ascii"))
+                        return hdr
+            except ArchiveError as e:
+                last = e
+        raise ArchiveError(f"No IMAGE header for {record.product_id}: {last}")
 
     def fetch_headers(self, records: list[ObservationRecord], workers: int = 8) -> dict[str, fits.Header | None]:
         out: dict[str, fits.Header | None] = {}
@@ -278,6 +287,131 @@ class SpherexAdapter(SurveyAdapter):
             self.storage.write_bytes(key, json.dumps(lut).encode())
             return lut
         raise ArchiveError(f"No WCS-WAVE extension in {record.access_url}")
+
+    # ------------------------------------------------------------------ pixel access via HTTP Range
+    def range_urls(self, record: ObservationRecord) -> list[str]:
+        """Byte-range sources for a product: AWS mirror first (if configured), then IRSA."""
+        urls = []
+        if self.settings.prefer_cloud_mirror and record.cloud_access:
+            try:
+                aws = json.loads(record.cloud_access)["aws"]
+                urls.append(f"https://{aws['bucket_name']}.s3.{aws['region']}.amazonaws.com/{aws['key']}")
+            except (ValueError, KeyError, TypeError):
+                pass
+        urls.append(record.access_url)
+        return urls
+
+    def _range_any(self, urls: list[str], start: int, length: int) -> bytes:
+        last: Exception | None = None
+        for u in urls:
+            try:
+                return self._range(u, start, length)
+            except ArchiveError as e:
+                last = e
+                log.warning("range read failed on %s, trying next source: %s", u.split("/")[2], e)
+        raise ArchiveError(f"all sources failed: {last}")
+
+    def hdu_index(self, record: ObservationRecord, stop_at: str | None = None) -> dict[str, dict[str, Any]]:
+        """Offsets, sizes and headers of a remote FITS file's HDUs (cached)."""
+        key = f"spherex/hduindex/{stable_key(record.access_url, stop_at)}.json"
+        if self.storage.exists(key):
+            return json.loads(self.storage.read_bytes(key))
+        idx: dict[str, dict[str, Any]] = {}
+        err: Exception | None = None
+        for url in self.range_urls(record):
+            try:
+                for name, hdr, doff, dsize in self.iter_remote_headers(url, stop_at=stop_at):
+                    idx[name] = {"data_offset": doff, "data_size": dsize, "header": hdr.tostring()}
+                break
+            except ArchiveError as e:
+                err, idx = e, {}
+        if not idx:
+            raise ArchiveError(f"could not index {record.product_id}: {err}")
+        self.storage.write_bytes(key, json.dumps(idx).encode())
+        return idx
+
+    @staticmethod
+    def _hdu_shape(entry: dict[str, Any]) -> tuple[fits.Header, np.dtype, list[int]]:
+        h = fits.Header.fromstring(entry["header"])
+        bitpix = int(h["BITPIX"])
+        dtype = np.dtype({8: "u1", 16: ">i2", 32: ">i4", 64: ">i8", -32: ">f4", -64: ">f8"}[bitpix])
+        dims = [int(h[f"NAXIS{i}"]) for i in range(1, int(h["NAXIS"]) + 1)]
+        return h, dtype, dims
+
+    def read_rows(
+        self, record: ObservationRecord, entry: dict[str, Any], y0: int, y1: int, plane: int = 0
+    ) -> np.ndarray:
+        """Rows y0..y1 (inclusive, 0-based) of one plane of an image HDU, read with one Range request.
+
+        Tile-compressed images (ZIMAGE, one tile per row, RICE_1 or GZIP_1 — the layout of full-frame
+        SPHEREx FLAGS) are handled by reading only the needed tile descriptors and heap bytes.
+        """
+        hz = fits.Header.fromstring(entry["header"])
+        if hz.get("ZIMAGE"):
+            return self._read_compressed_rows(record, entry, hz, y0, y1)
+        h, dtype, dims = self._hdu_shape(entry)
+        nx, ny = dims[0], dims[1]
+        start = entry["data_offset"] + ((plane * ny + y0) * nx) * dtype.itemsize
+        length = (y1 - y0 + 1) * nx * dtype.itemsize
+        raw = self._range_any(self.range_urls(record), start, length)
+        if len(raw) != length:
+            raise ArchiveError(f"short read for {record.product_id}: {len(raw)} of {length} bytes")
+        arr = np.frombuffer(raw, dtype=dtype).reshape(y1 - y0 + 1, nx)
+        scale, zero = float(h.get("BSCALE", 1.0)), float(h.get("BZERO", 0.0))
+        out = arr.astype(np.float64 if dtype.kind == "f" else np.int64)
+        return out * scale + zero if (scale != 1.0 or zero != 0.0) else out
+
+    def _read_compressed_rows(
+        self, record: ObservationRecord, entry: dict[str, Any], h: fits.Header, y0: int, y1: int
+    ) -> np.ndarray:
+        from astropy.io.fits.hdu.compressed._codecs import Gzip1, Rice1
+
+        nx = int(h["ZNAXIS1"])
+        if int(h.get("ZTILE1", nx)) != nx or int(h.get("ZTILE2", 1)) != 1:
+            raise ArchiveError("unsupported tile layout (expected one tile per image row)")
+        tform = str(h["TFORM1"]).strip().upper()
+        desc_bytes = 16 if "Q" in tform else 8
+        desc_dtype = np.dtype(">i8" if desc_bytes == 16 else ">i4")
+        row_len = int(h["NAXIS1"])
+        nrows = int(h["NAXIS2"])
+        if row_len != desc_bytes or int(h.get("TFIELDS", 1)) != 1:
+            raise ArchiveError("unsupported compressed table layout")
+        urls = self.range_urls(record)
+        desc_raw = self._range_any(urls, entry["data_offset"] + y0 * row_len, (y1 - y0 + 1) * row_len)
+        desc = np.frombuffer(desc_raw, dtype=desc_dtype).reshape(-1, 2)  # (count, heap offset)
+        heap0 = entry["data_offset"] + int(h.get("THEAP", row_len * nrows))
+        lo = int(desc[:, 1].min())
+        hi = int((desc[:, 1] + desc[:, 0]).max())
+        heap = self._range_any(urls, heap0 + lo, hi - lo)
+        cmp = str(h.get("ZCMPTYPE", "")).strip().upper()
+        zvals = {str(h.get(f"ZNAME{i}", "")).strip().upper(): h.get(f"ZVAL{i}") for i in range(1, 10)}
+        zbitpix = int(h["ZBITPIX"])
+        bytepix = abs(zbitpix) // 8
+        out = np.zeros((y1 - y0 + 1, nx), dtype=np.int64)
+        for i, (count, off) in enumerate(desc):
+            chunk = np.frombuffer(heap[int(off) - lo : int(off) - lo + int(count)], dtype=np.uint8)
+            if cmp == "RICE_1":
+                codec = Rice1(
+                    blocksize=int(zvals.get("BLOCKSIZE", 32)), bytepix=int(zvals.get("BYTEPIX", bytepix)), tilesize=nx
+                )
+                vals = np.asarray(codec.decode(chunk))
+            elif cmp == "GZIP_1":
+                vals = np.frombuffer(Gzip1(itemsize=bytepix).decode(chunk), dtype=f">i{bytepix}")
+            else:
+                raise ArchiveError(f"unsupported compression {cmp}")
+            out[i] = vals[:nx].astype(np.int64)
+        return out
+
+    def read_table(self, record: ObservationRecord, entry: dict[str, Any]) -> Any:
+        h = fits.Header.fromstring(entry["header"])
+        data = self._range_any(self.range_urls(record), entry["data_offset"], entry["data_size"])
+        buf = io.BytesIO()
+        fits.PrimaryHDU().writeto(buf)
+        buf.write(h.tostring().encode("ascii"))
+        buf.write(data)
+        buf.seek(0)
+        with fits.open(buf) as hd:
+            return hd[1].data.copy()
 
     # ------------------------------------------------------------------ cutouts
     def cutout_url(self, record: ObservationRecord, ra: float, dec: float, size_deg: float) -> str:

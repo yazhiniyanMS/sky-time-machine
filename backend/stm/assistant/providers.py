@@ -33,6 +33,13 @@ known limitations (approximate Gaussian PSF matching, undersampled PSF, resampli
 wavelength varying across the detector).
 - If the context does not contain what is needed, say so and suggest what the user can run in the app (choose a \
 spectrally matched pair, run a comparison, run forced photometry, build tracks).
+- Every factual statement about a measurement, observation or catalogue object must cite the supporting record by
+  its reference in square brackets, using only refs from the context's "citations" list (e.g. [ST-2026-000002],
+  [2025W28_2A_0263_3D1]). If no record supports a statement, say so instead of answering from memory.
+- Angular proximity to a catalogue object is not physical association; "confirmed_positional" only means the
+  positions agree.
+- Light-curve scatter is not variability unless the stored chi-square test says it is significant.
+- Never declare a discovery. You explain evidence; you do not produce measurements.
 - Be concise: short paragraphs or bullet lists, no more than about 250 words unless asked for detail."""
 
 
@@ -186,6 +193,7 @@ class RuleBasedProvider(AssistantProvider):
                 "No processed comparisons or candidates are available for the current view. Open the "
                 "Timeline, pick a spectrally matched pair of observations, and run a comparison first."
             )
+        lines += self._research_sections(q, context)
         docs = context.get("documentation") or []
         if docs:
             lines.append("")
@@ -193,12 +201,105 @@ class RuleBasedProvider(AssistantProvider):
             for d in docs[:2]:
                 snippet = " ".join(d["text"].split()[:70])
                 lines.append(f"- *{d['source']}*: {snippet}…")
+        cites = context.get("citations") or []
+        if cites:
+            lines.append("")
+            lines.append("### Sources")
+            for c in cites[:12]:
+                lines.append(f"- [{c['ref']}] {c['kind']}" + (f" — {c['url']}" if c.get("url") else ""))
         lines.append("")
         lines.append(
             "_Rule-based summary: no LLM is configured (set ANTHROPIC_API_KEY on the server for "
             "natural-language answers). Only stored measurements are reported; no interpretation is added._"
         )
         return {"answer": "\n".join(lines), "mode": "rule-based", "model": None}
+
+    @staticmethod
+    def _research_sections(q: str, ctx: dict[str, Any]) -> list[str]:
+        out: list[str] = []
+        comp = ctx.get("comparison") or {}
+        met = comp.get("metrics") or {}
+        if "psf" in q and met:
+            out += ["", "### PSF matching (stored comparison metrics)"]
+            if met.get("psf_method") == "epsf_cross":
+                rot_a = (met.get("psf_a") or {}).get("rotation_deg", 0)
+                rot_b = (met.get("psf_b") or {}).get("rotation_deg", 0)
+                out.append(
+                    "EPSF cross-convolution: each epoch was convolved with the other epoch's archive EPSF, resampled "
+                    f"to the comparison grid. PSF difference (total variation) {met.get('psf_mismatch_tv', 0):.3f}; "
+                    f"effective FWHM {met.get('psf_fwhm_effective_arcsec', 0):.2f}″; detector position angles "
+                    f"{rot_a:.1f}° / {rot_b:.1f}°; noise rescale ×{met.get('noise_rescale_factor', 1):.2f} "
+                    f"[{comp.get('id')}]."
+                )
+            else:
+                out.append(
+                    f"Method: {met.get('psf_method', 'pre-0.2 header-FWHM Gaussian or none')} [{comp.get('id')}]."
+                )
+        cp = ctx.get("counterparts")
+        if any(w in q for w in ("counterpart", "catalog", "catalogue", "known", "simbad", "gaia")):
+            out += ["", "### Known counterparts (positional)"]
+            if not cp:
+                out.append("Cross-matching has not been run for this candidate (Known Counterparts panel on its page).")
+            else:
+                out.append(
+                    f"Overall: **{cp['association']}** within {cp['radius_arcsec']}″ (positions only; not a physical "
+                    "association)."
+                )
+                for name, c in cp["catalogs"].items():
+                    near = c.get("nearest") or []
+                    first = (
+                        (
+                            f"nearest {near[0].get('id')} at {near[0].get('sep_arcsec', 0):.1f}″ "
+                            f"({near[0].get('n_sigma', 0):.1f}σ) [{near[0].get('id')}]"
+                        )
+                        if near
+                        else "no sources"
+                    )
+                    out.append(f"- {name}: {c.get('association')} (service {c.get('status')}); {first}")
+        sp = ctx.get("spectrophotometry")
+        if any(w in q for w in ("brightness", "light curve", "lightcurve", "epoch", "variab", "spectr", "flux")):
+            out += ["", "### Repeated measurements"]
+            if not sp:
+                out.append("No spectrophotometry run exists for this position yet (Spectra page → Measure).")
+            else:
+                out.append(
+                    f"Run [{sp['run_id']}]: {sp['n_ok_measurements']} measurements in {sp['n_channels_measured']} "
+                    f"official channels from {sp.get('n_exposures')} exposures."
+                )
+                lc = sp.get("light_curve_candidate_channel")
+                if lc:
+                    out.append(
+                        f"- Candidate channel {lc['channel']}: {lc.get('n_points')} points, {lc.get('n_visits')} "
+                        f"visits; weighted mean {lc.get('weighted_mean_ujy') or 0:.1f} ± "
+                        f"{lc.get('weighted_mean_err_ujy') or 0:.1f} µJy; verdict **{lc.get('verdict')}**. "
+                        f"{lc.get('explanation', '')}"
+                    )
+        sim = ctx.get("similar_candidates")
+        if sim:
+            out += ["", "### Candidates with similar measured properties", f"Metric: {sim['metric']}"]
+            out += [
+                f"- [{c['id']}] {c['machine_class']}, {c['peak_significance']:+.1f}σ, tier {c['quality_tier']} "
+                f"(distance {c['distance']})"
+                for c in sim["items"]
+            ] or ["- none stored"]
+        inv = ctx.get("investigation")
+        if inv and any(w in q for w in ("investigation", "summar")):
+            out += [
+                "",
+                f"### Investigation [{inv['id']}] — {inv['title']}",
+                inv["description"] or "(no description)",
+                f"{len(inv['items'])} saved item(s): "
+                + ", ".join(f"{i['kind']} {i['ref_id']}" for i in inv["items"][:15]),
+            ]
+            if inv["notes"]:
+                out.append("Notes (excerpt): " + inv["notes"][:400])
+        if any(w in q for w in ("most significant", "find", "unusual", "strongest")) and ctx.get("region_candidates"):
+            out += ["", "### Most significant non-rejected candidates in view (tier, then |σ|)"]
+            out += [
+                f"- [{c['id']}] {c['peak_significance']:+.1f}σ, tier {c['quality_tier']}, {c['machine_class']}"
+                for c in ctx["region_candidates"][:8]
+            ]
+        return out
 
 
 def get_provider() -> AssistantProvider:

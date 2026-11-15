@@ -16,6 +16,7 @@ dependencies = [
   "pydantic-settings>=2.4",
   "sqlalchemy>=2.0",
   "httpx>=0.27",
+  "alembic>=1.13",
   "anthropic>=2.0",
 ]
 
@@ -29,6 +30,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["stm*"]
+
+[tool.ruff.lint.per-file-ignores]
+"migrations/*" = ["E501"]
+"stm/api/workspace.py" = ["E501"]  # embedded HTML report template
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -10,10 +10,11 @@ import re
 from functools import lru_cache
 from typing import Any
 
+import numpy as np
 from sqlalchemy import select
 
 from stm.config import REPO_ROOT
-from stm.db import Candidate, Comparison, session
+from stm.db import Candidate, Comparison, CounterpartAssessment, Investigation, PhotometryRun, session
 from stm.pipeline import candidates_near
 from stm.science.ranking import CLASS_DESCRIPTIONS
 
@@ -103,7 +104,7 @@ def build_context(ctx: dict[str, Any], question: str) -> dict[str, Any]:
                     "epoch_a": {"product": comp.product_a, "t_mid_mjd": comp.t_a_mjd},
                     "epoch_b": {"product": comp.product_b, "t_mid_mjd": comp.t_b_mjd},
                     "summary": comp.summary,
-                    "metrics": prov.get("metrics"),
+                    "metrics": {k: v for k, v in (prov.get("metrics") or {}).items() if not k.startswith("psf_kernel")},
                     "failed_quality_checks": [q for q in prov.get("quality_checks", []) if not q["passed"]],
                     "inputs": [
                         {k: i.get(k) for k in ("product_id", "date_iso", "access_url", "psf_fwhm_arcsec")}
@@ -116,6 +117,171 @@ def build_context(ctx: dict[str, Any], question: str) -> dict[str, Any]:
         near = [c for c in near if not c.rejected]
         near.sort(key=lambda c: ({"A": 0, "B": 1}.get(c.quality_tier, 2), -abs(c.peak_significance)))
         out["region_candidates"] = [_cand(c) for c in near[:15]]
+    _add_research_context(out, ctx, question)
     out["class_definitions"] = CLASS_DESCRIPTIONS
     out["documentation"] = retrieve_docs(question)
+    out["citations"] = _citations(out)
     return out
+
+
+def _add_research_context(out: dict[str, Any], ctx: dict[str, Any], question: str) -> None:
+    """Spectra, light curves, catalogue matches, investigations and similar candidates (all from stored records)."""
+    from stm.science.lightcurve import light_curve_stats
+    from stm.science.tracking import sep_arcsec
+
+    cand = out.get("selected_candidate")
+    with session() as s:
+        if cand:
+            a = s.scalars(
+                select(CounterpartAssessment)
+                .where(CounterpartAssessment.candidate_id == cand["id"])
+                .order_by(CounterpartAssessment.created_at.desc())
+            ).first()
+            if a is not None:
+                out["counterparts"] = {
+                    "association": a.association,
+                    "radius_arcsec": a.radius_arcsec,
+                    "assessed_at": a.created_at.isoformat(),
+                    "catalogs": {
+                        name: {
+                            "status": c.get("status"),
+                            "association": c.get("association"),
+                            "expected_chance": c.get("expected_chance"),
+                            "nearest": c.get("counterparts", [])[:5],
+                        }
+                        for name, c in a.catalogs.items()
+                    },
+                }
+        ra = cand["ra"] if cand else ctx.get("ra")
+        dec = cand["dec"] if cand else ctx.get("dec")
+        run = None
+        if ctx.get("run_id"):
+            run = s.get(PhotometryRun, ctx["run_id"])
+        elif (
+            cand
+            and (
+                linked := s.scalars(
+                    select(PhotometryRun)
+                    .where(PhotometryRun.candidate_id == cand["id"], PhotometryRun.status == "done")
+                    .order_by(PhotometryRun.created_at.desc())
+                ).first()
+            )
+            is not None
+        ):
+            run = linked
+        elif ra is not None and dec is not None:
+            for r in s.scalars(
+                select(PhotometryRun).where(PhotometryRun.status == "done").order_by(PhotometryRun.created_at.desc())
+            ):
+                if sep_arcsec(float(ra), float(dec), r.ra, r.dec) <= 10:
+                    run = r
+                    break
+        if run is not None and run.status == "done":
+            ok = [p for p in run.points if p.status == "ok"]
+            chans: dict[int, list[Any]] = {}
+            for p in ok:
+                if p.channel is not None:
+                    chans.setdefault(p.channel, []).append(p)
+            target = None
+            if cand and cand["measurements"].get("wave_b_um"):
+                w = cand["measurements"]["wave_b_um"]
+                target = min(chans, key=lambda c: min(abs((p.wave_um or 0) - w) for p in chans[c]), default=None)
+            lc = None
+            if target is not None:
+                pts = [p for p in chans[target] if p.quality in ("good", "warning")]
+                lc = light_curve_stats(
+                    [p.t_mid_mjd for p in pts], [p.flux_ujy for p in pts], [p.flux_err_ujy for p in pts]
+                )
+                lc = {
+                    k: lc.get(k)
+                    for k in (
+                        "n_points",
+                        "n_visits",
+                        "weighted_mean_ujy",
+                        "weighted_mean_err_ujy",
+                        "median_ujy",
+                        "std_ujy",
+                        "relative_scatter",
+                        "reduced_chi2",
+                        "p_value_constant",
+                        "verdict",
+                        "explanation",
+                    )
+                } | {"channel": target}
+            out["spectrophotometry"] = {
+                "run_id": run.id,
+                "ra": run.ra,
+                "dec": run.dec,
+                "n_ok_measurements": len(ok),
+                "n_channels_measured": len(chans),
+                "n_exposures": (run.provenance or {}).get("n_exposures"),
+                "per_channel_counts": {str(c): len(v) for c, v in sorted(chans.items())},
+                "light_curve_candidate_channel": lc,
+                "quantity": "measured aperture flux density (µJy) per exposure",
+            }
+        if ctx.get("investigation_id"):
+            inv = s.get(Investigation, ctx["investigation_id"])
+            if inv is not None:
+                out["investigation"] = {
+                    "id": inv.id,
+                    "title": inv.title,
+                    "description": inv.description[:2000],
+                    "notes": inv.notes[:4000],
+                    "references": inv.references[:20],
+                    "items": [
+                        {"kind": it.kind, "ref_id": it.ref_id, "label": it.label, "note": it.note[:500]}
+                        for it in inv.items[:50]
+                    ],
+                }
+        if cand and any(w in question.lower() for w in ("similar", "like this", "comparable")):
+            me = s.scalar(select(Candidate).where(Candidate.id == cand["id"]))
+            others = [c for c in s.scalars(select(Candidate)) if c.id != cand["id"] and not c.rejected]
+            if me is not None:
+
+                def dist(c: Candidate) -> float:
+                    d = 0.0 if c.machine_class == me.machine_class else 2.0
+                    d += 0.0 if c.sign == me.sign else 1.0
+                    d += abs(np.log10(abs(c.peak_significance) + 1) - np.log10(abs(me.peak_significance) + 1))
+                    ms, cs = me.measurements.get("diff_snr") or 0, c.measurements.get("diff_snr") or 0
+                    return d + abs(np.log10(abs(ms) + 1) - np.log10(abs(cs) + 1))
+
+                out["similar_candidates"] = {
+                    "metric": "same machine class (+2 if not), same sign (+1 if not), |Δ log10(1+|peak σ|)|, "
+                    "|Δ log10(1+S/N)| — similarity of measured properties only",
+                    "items": [_cand(c) | {"distance": round(dist(c), 3)} for c in sorted(others, key=dist)[:5]],
+                }
+
+
+def _citations(out: dict[str, Any]) -> list[dict[str, Any]]:
+    cites: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def add(ref: str, kind: str, url: str | None = None, note: str = "") -> None:
+        if ref and ref not in seen:
+            seen.add(ref)
+            cites.append({"ref": ref, "kind": kind, "url": url, "note": note})
+
+    if out.get("selected_candidate"):
+        add(out["selected_candidate"]["id"], "candidate", f"/discovery/{out['selected_candidate']['id']}")
+    comp = out.get("comparison")
+    if comp:
+        add(comp["id"], "comparison")
+        for i in comp.get("inputs", []):
+            add(i["product_id"], "SPHEREx L2 observation", i.get("access_url"), str(i.get("date_iso") or ""))
+    for c in out.get("region_candidates", [])[:10]:
+        add(c["id"], "candidate", f"/discovery/{c['id']}")
+    cp = out.get("counterparts")
+    if cp:
+        for name, cat in cp["catalogs"].items():
+            for r in cat.get("nearest", [])[:3]:
+                add(str(r.get("id")), f"{name} catalogue record", r.get("url"), f"sep {r.get('sep_arcsec')}″")
+    sp = out.get("spectrophotometry")
+    if sp:
+        add(sp["run_id"], "spectrophotometry run", f"/spectra?run={sp['run_id']}")
+    if out.get("investigation"):
+        add(out["investigation"]["id"], "investigation", f"/investigations/{out['investigation']['id']}")
+    for c in (out.get("similar_candidates") or {}).get("items", []):
+        add(c["id"], "candidate", f"/discovery/{c['id']}")
+    for d in out.get("documentation", []):
+        add(d["source"], "documentation")
+    return cites

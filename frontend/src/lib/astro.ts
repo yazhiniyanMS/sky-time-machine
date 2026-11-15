@@ -52,14 +52,10 @@ export function parseCoords(text: string): { ra: number; dec: number } | null {
   return null;
 }
 
-export const DETECTOR_COLORS: Record<number, string> = {
-  1: "#8fb8ff",
-  2: "#7fd6c8",
-  3: "#b9e07a",
-  4: "#f2c35a",
-  5: "#f59b6b",
-  6: "#ef7aa0",
-};
+// Categorical slots 1–6 of the validated reference palette, dark-surface steps
+// (dataviz validate_palette.js: all checks pass on #0d1117). Fixed order, never cycled.
+export const SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#e66767"];
+export const DETECTOR_COLORS: Record<number, string> = { 1: SERIES[0], 2: SERIES[1], 3: SERIES[2], 4: SERIES[3], 5: SERIES[4], 6: SERIES[5] };
 
 export const BANDS: Record<number, string> = {
   1: "0.75–1.09 µm",
@@ -92,3 +88,17 @@ export function sepArcsec(ra1: number, dec1: number, ra2: number, dec2: number):
     Math.cos(dec1 * r) * Math.cos(dec2 * r) * Math.sin(((ra2 - ra1) * r) / 2) ** 2;
   return (2 * Math.asin(Math.min(1, Math.sqrt(s)))) / r * 3600;
 }
+
+export const ASSOCIATION_LABEL: Record<string, string> = {
+  confirmed_positional: "Positional match (confirmed)",
+  possible: "Possible association",
+  inconclusive: "Inconclusive",
+  none: "No known counterpart",
+};
+
+export const VERDICT_LABEL: Record<string, string> = {
+  significant_variability: "Statistically significant variability",
+  no_significant_variability: "No significant variability",
+  insufficient_data: "Insufficient data",
+  no_data: "No data",
+};

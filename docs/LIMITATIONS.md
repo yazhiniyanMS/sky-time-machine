@@ -29,8 +29,27 @@
   cached per L2 pipeline version. Comparisons always recompute it from each cutout's own table.
 - **Cutout size.** Comparisons are limited to ≤ 0.25° fields (cutouts ≤ 0.3°).
 
+- **Light curves are short.** SPHEREx's cadence gives 2–4 measurements per channel per year at a typical
+  position. Most channels are "insufficient data" for a variability test, and that is reported as such.
+- **Cube spectra have no uncertainties.** The IRSA cube provides surface brightness and hit counts only.
+  Per-exposure spectrophotometry is the only source of errors.
+- **Cross-matching covers SIMBAD and Gaia DR3 only.** Positional association never implies physical identity.
+  The chance-coincidence estimate assumes a uniform density within the cone.
+- **Wavelengths at channel edges.** Per-exposure samples are assigned by wavelength range; samples outside
+  every official range are left unassigned.
+
 ## Engineering
 
+- **Archive load.** IRSA's SIA and TAP services intermittently returned 502s and timeouts during development.
+  Large cone queries (coverage maps over dense fields) can fail even after 4 retries; the job then fails with
+  the archive error rather than drawing an incomplete map. Byte-range reads use the AWS mirror first.
+- **CDS availability.** CDS SIMBAD/HiPS endpoints returned 404 from the development machine; SIMBAD falls back
+  to the Harvard mirror and HiPS backgrounds use IRSA mirrors. Aladin's built-in SIMBAD layer still calls CDS
+  directly.
+- **Investigations and watchlists have no user accounts.** Anyone with the URL can edit an investigation;
+  ownership is a display name.
+- **Watchlist checks are periodic.** "New" means newly released by IRSA. Background checks run only when
+  `STM_WATCH_INTERVAL_HOURS` is set.
 - **Moderation is token-based.** A single shared token gates moderation and verification; there are no user
   accounts. Community author names are self-reported.
 - **No Celery or PostGIS.** A thread-pool runner and SQLite are used by default (see ARCHITECTURE). PostgreSQL is
