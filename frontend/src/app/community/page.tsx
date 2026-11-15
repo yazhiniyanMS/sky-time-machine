@@ -47,9 +47,9 @@ export default function Community() {
   }
 
   return (
-    <div className="p-4 max-w-[1300px] w-full mx-auto flex flex-col gap-4">
+    <div className="px-4 sm:px-6 py-6 max-w-[1300px] w-full mx-auto flex flex-col gap-4">
       <div>
-        <h1 className="text-lg font-semibold">Community</h1>
+        <h1 className="serif text-[26px] leading-tight font-semibold tracking-[-0.01em]">Community</h1>
         <p className="text-[12px] text-muted">Citizen-science classifications and notes. Votes are opinions for reviewers; they never confirm a candidate. Machine and human classifications are stored separately, and every change is audited.</p>
       </div>
       <ErrorNote error={err} />
@@ -59,7 +59,7 @@ export default function Community() {
           <ul className="divide-y divide-line text-[12px]">
             {feed.map((a) => (
               <li key={a.id} className="py-1.5">
-                <div className="flex gap-2 num text-faint"><Link className="text-accent" href={`/discovery/${a.target_id}`}>{a.target_id}</Link><span>{a.kind.replace("_", " ")}</span><span className="text-muted">{a.author}</span><span className="ml-auto">{a.created_at.slice(0, 16).replace("T", " ")}</span></div>
+                <div className="flex gap-2 num text-faint"><Link className="text-text underline decoration-line-strong hover:text-accent" href={`/discovery/${a.target_id}`}>{a.target_id}</Link><span>{a.kind.replace("_", " ")}</span><span className="text-muted">{a.author}</span><span className="ml-auto">{a.created_at.slice(0, 16).replace("T", " ")}</span></div>
                 {a.body && <p className="mt-0.5 whitespace-pre-wrap">{a.body}</p>}
               </li>
             ))}

@@ -29,21 +29,21 @@ export function SearchBox({ onGo, className = "" }: { onGo: (ra: number, dec: nu
 
   return (
     <form onSubmit={submit} className={`flex flex-col gap-1 ${className}`} role="search">
-      <div className="flex h-9 rounded-md border border-line-strong bg-panel/95 backdrop-blur focus-within:border-accent">
+      <div className="flex h-8 rounded-sm border border-line-strong bg-panel focus-within:border-text">
         <label htmlFor="sky-search" className="sr-only">Object name or coordinates</label>
         <input
           id="sky-search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="M31, NGC 1333, or 10.6847 +41.2690"
-          className="flex-1 min-w-0 bg-transparent px-3 text-[13px] outline-none placeholder:text-faint"
+          placeholder="Object name or RA Dec — M31, 10.6847 +41.2690"
+          className="flex-1 min-w-0 bg-transparent px-2.5 text-[13px] outline-none placeholder:text-faint"
           autoComplete="off"
         />
-        <button type="submit" disabled={busy} className="px-3 text-[12px] text-muted hover:text-text border-l border-line">
-          {busy ? "Resolving…" : "Go"}
+        <button type="submit" disabled={busy} className="px-3 text-[12px] font-medium text-text hover:bg-panel-2 border-l border-line-strong">
+          {busy ? "Resolving…" : "Go to"}
         </button>
       </div>
-      {err && <p role="alert" className="text-[12px] text-bad px-1">{err}</p>}
+      {err && <p role="alert" className="text-[12px] text-bad">{err}</p>}
     </form>
   );
 }

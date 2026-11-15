@@ -6,9 +6,9 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { SearchBox } from "@/components/SearchBox";
 import { CoverageHeatmap, seqColor } from "@/components/CoverageHeatmap";
 import { type Footprint, SkyMap, type SkyMarker, SURVEYS, type VectorLayer } from "@/components/SkyMap";
-import { Button, ErrorNote, f, Progress } from "@/components/ui";
+import { Button, ErrorNote, f, inputCls, MetaList, Panel, primaryLinkCls, Progress } from "@/components/ui";
 import { type CandidateBrief, type CoverageMap, get, type Job, type ObservationsResponse, pollJob, post } from "@/lib/api";
-import { BANDS, CLASS_LABEL, DETECTOR_COLORS, decDms, fmtDate, raHms, SERIES } from "@/lib/astro";
+import { BANDS, CLASS_LABEL, DETECTOR_COLORS, decDms, fmtDate, MAP_COLORS, raHms } from "@/lib/astro";
 
 const toRa = (lon: number) => ((lon % 360) + 360) % 360;
 function geoLines(fc: any): [number, number][][] {
@@ -100,13 +100,13 @@ function Explore() {
       for (const p of e.products) {
         if (p.detector !== (v.det ?? 1)) continue;
         const poly = parseRegion(p.s_region);
-        if (poly.length >= 3) out.push({ id: p.product_id, polygon: poly, color: DETECTOR_COLORS[p.detector ?? 1], label: p.product_id });
+        if (poly.length >= 3) out.push({ id: p.product_id, polygon: poly, color: MAP_COLORS.footprint, label: p.product_id });
       }
     return out;
   }, [obs, showFp, v.det]);
 
   const markers = useMemo<SkyMarker[]>(
-    () => cands.map((c) => ({ id: c.id, ra: c.ra, dec: c.dec, label: c.id, color: c.sign > 0 ? "#ff8a5c" : "#5cc8ff", selected: c.id === v.cand })),
+    () => cands.map((c) => ({ id: c.id, ra: c.ra, dec: c.dec, label: c.id, color: c.sign > 0 ? MAP_COLORS.brighten : MAP_COLORS.fade, selected: c.id === v.cand })),
     [cands, v.cand],
   );
 
@@ -144,11 +144,11 @@ function Explore() {
 
   const layers = useMemo<VectorLayer[]>(() => {
     const out: VectorLayer[] = [];
-    if (lay.bounds && constData) out.push({ id: "bounds", color: "#a07a2c", lineWidth: 1, opacity: 0.8, polylines: geoLines(constData.bounds) });
-    if (lay.lines && constData) out.push({ id: "lines", color: "#8592a5", lineWidth: 1, opacity: 0.7, polylines: geoLines(constData.lines) });
-    if (lay.galaxies) out.push({ id: "galaxies", color: SERIES[6], shape: "square", size: 9, sources: objs.galaxy.map((o) => ({ ra: o.ra, dec: o.dec, id: o.main_id, label: `${o.main_id} (${o.otype})` })) });
-    if (lay.nebulae) out.push({ id: "nebulae", color: SERIES[2], shape: "triangle", size: 9, sources: objs.nebula.map((o) => ({ ra: o.ra, dec: o.dec, id: o.main_id, label: `${o.main_id} (${o.otype})` })) });
-    if (lay.saved) out.push({ id: "saved", color: SERIES[3], shape: "rhomb", size: 14, sources: saved.map((c) => ({ ra: c.ra, dec: c.dec, id: c.id, label: `${c.id} (saved)` })) });
+    if (lay.bounds && constData) out.push({ id: "bounds", color: MAP_COLORS.bounds, lineWidth: 1, opacity: 0.8, polylines: geoLines(constData.bounds) });
+    if (lay.lines && constData) out.push({ id: "lines", color: MAP_COLORS.figures, lineWidth: 1, opacity: 0.7, polylines: geoLines(constData.lines) });
+    if (lay.galaxies) out.push({ id: "galaxies", color: MAP_COLORS.galaxies, shape: "square", size: 9, sources: objs.galaxy.map((o) => ({ ra: o.ra, dec: o.dec, id: o.main_id, label: `${o.main_id} (${o.otype})` })) });
+    if (lay.nebulae) out.push({ id: "nebulae", color: MAP_COLORS.nebulae, shape: "triangle", size: 9, sources: objs.nebula.map((o) => ({ ra: o.ra, dec: o.dec, id: o.main_id, label: `${o.main_id} (${o.otype})` })) });
+    if (lay.saved) out.push({ id: "saved", color: MAP_COLORS.saved, shape: "rhomb", size: 14, sources: saved.map((c) => ({ ra: c.ra, dec: c.dec, id: c.id, label: `${c.id} (saved)` })) });
     if (lay.coverage && cov) {
       const grid = cov.layers[covMetric];
       const mx = Math.max(1, ...grid.flat());
@@ -157,119 +157,172 @@ function Explore() {
         const cr = cov.cell_ra[j][i], cd = cov.cell_dec[j][i], hr = h / Math.cos((cd * Math.PI) / 180);
         return { pts: [[cr - hr, cd - h], [cr + hr, cd - h], [cr + hr, cd + h], [cr - hr, cd + h]] as [number, number][], fill: seqColor(v / mx) };
       });
-      out.push({ id: `coverage-${covMetric}`, color: "#3987e5", lineWidth: 0, opacity: 0.3, polygons: polys });
+      out.push({ id: `coverage-${covMetric}`, color: MAP_COLORS.coverage, lineWidth: 0, opacity: 0.3, polygons: polys });
     }
     return out;
   }, [lay, constData, objs, saved, cov, covMetric]);
 
   const range = obs?.exposures.length ? [obs.exposures[0].t_mid_mjd, obs.exposures[obs.exposures.length - 1].t_mid_mjd] : null;
   const stale = obsAt && (Math.abs(obsAt.ra - ra) > 0.05 || Math.abs(obsAt.dec - dec) > 0.05);
+  const det = v.det ?? 1;
+  const surveyLabel = SURVEYS.find((s) => s.id === survey)?.label ?? survey;
+  const layerRows: [string, boolean, (b: boolean) => void, string, boolean?][] = [
+    [`SPHEREx footprints, D${det}`, showFp, setShowFp, MAP_COLORS.footprint],
+    ["Saved candidates", lay.saved, (b) => setLay({ ...lay, saved: b }), MAP_COLORS.saved],
+    ["Coverage cells", lay.coverage, (b) => setLay({ ...lay, coverage: b }), MAP_COLORS.coverage, !cov],
+    ["Constellation boundaries (IAU)", lay.bounds, (b) => setLay({ ...lay, bounds: b }), MAP_COLORS.bounds],
+    ["Constellation figures", lay.lines, (b) => setLay({ ...lay, lines: b }), MAP_COLORS.figures],
+    ["Galaxies (SIMBAD)", lay.galaxies, (b) => setLay({ ...lay, galaxies: b }), MAP_COLORS.galaxies],
+    ["Nebulae and ISM (SIMBAD)", lay.nebulae, (b) => setLay({ ...lay, nebulae: b }), MAP_COLORS.nebulae],
+    ["All SIMBAD objects (CDS, in viewer)", showSimbad, setShowSimbad, MAP_COLORS.simbad],
+    ["Coordinate grid", showGrid, setShowGrid, MAP_COLORS.grid],
+  ];
 
   return (
-    <div className="relative flex-1 min-h-[calc(100dvh-3rem)]">
-      <SkyMap
-        ra={ra} dec={dec} fov={fov} survey={survey} cubeSlice={slice} footprints={footprints} markers={markers}
-        showSimbad={showSimbad} showGrid={showGrid} layers={layers}
-        onMove={(r, d, fv) => setView({ ra: r, dec: d, fov: fv })}
-        onMarkerClick={(id) => { if (id.startsWith("ST-")) router.push(href(`/discovery/${id}`, { ra, dec })); }}
-      />
-
-      <div className="absolute top-3 left-3 w-[min(420px,calc(100%-24px))] z-10 flex flex-col gap-2">
-        <SearchBox onGo={(r, d) => { setView({ ra: r, dec: d, fov: Math.min(fov, 1.5), cand: undefined }); queryObs(r, d); }} />
-        <div className="text-[11px] num text-muted bg-panel/80 backdrop-blur border border-line rounded px-2 py-1 w-fit">
-          {raHms(ra)} {decDms(dec)} · {ra.toFixed(4)}° {dec >= 0 ? "+" : ""}{dec.toFixed(4)}° · FoV {f(fov, 2)}°{constellation && ` · ${constellation}`}
-        </div>
-      </div>
-
-      <aside className="absolute z-10 bottom-3 left-3 right-3 md:left-auto md:top-3 md:bottom-3 md:w-[340px] bg-panel/95 backdrop-blur border border-line rounded-md flex flex-col max-h-[55dvh] md:max-h-none overflow-hidden">
-        <div className="px-3 h-9 flex items-center border-b border-line text-[12px] uppercase tracking-wider text-muted">
-          SPHEREx coverage
-          <button onClick={() => queryObs(ra, dec)} disabled={loadingObs} className="ml-auto normal-case tracking-normal text-accent hover:underline disabled:opacity-50">
-            {loadingObs ? "Querying IRSA…" : stale ? "Query this position" : "Refresh"}
-          </button>
-        </div>
-        <div className="overflow-y-auto p-3 flex flex-col gap-4 text-[13px]">
-          <ErrorNote error={err} />
-          {obs && (
-            <section className="flex flex-col gap-2">
-              <p className="text-muted text-[12px]">
-                {obs.n_products} Level 2 images in {obs.n_exposures} exposures cover{" "}
-                <span className="num">{obsAt && `${obsAt.ra.toFixed(4)}, ${obsAt.dec.toFixed(4)}`}</span>
-                {range && <> between <span className="num text-text">{fmtDate(range[0], false)}</span> and <span className="num text-text">{fmtDate(range[1], false)}</span></>}.
-              </p>
-              {obs.n_products === 0 && <p className="text-warn text-[12px]">No public SPHEREx DR1 images cover this position.</p>}
-              <div className="grid grid-cols-3 gap-1">
-                {Object.entries(obs.detectors).map(([d, n]) => (
-                  <button key={d} onClick={() => setView({ det: v.det === +d ? undefined : +d })}
-                    aria-pressed={v.det === +d}
-                    className={`flex flex-col items-start px-2 py-1 rounded border text-left ${v.det === +d ? "border-accent bg-accent/5" : "border-line hover:border-line-strong"}`}>
-                    <span className="flex items-center gap-1 text-[11px]"><span className="w-2 h-2 rounded-full" style={{ background: DETECTOR_COLORS[+d] }} />D{d}</span>
-                    <span className="num text-[11px] text-muted">{n} img · {BANDS[+d].split("–")[0]}–</span>
-                  </button>
-                ))}
+    <div className="theme-graphite flex-1 lg:flex-none flex flex-col lg:flex-row min-h-0 lg:h-[calc(100dvh-2.75rem)] bg-bg">
+      {/* Workspace: context bar, map, status bar */}
+      <section className="flex-1 flex flex-col min-w-0 min-h-0">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-3 py-2 border-b border-line">
+          <SearchBox className="w-full sm:w-[340px]" onGo={(r, d) => { setView({ ra: r, dec: d, fov: Math.min(fov, 1.5), cand: undefined }); queryObs(r, d); }} />
+          <dl className="flex flex-wrap gap-x-5 gap-y-1 text-[12px]" aria-label="Map centre">
+            {[["RA", raHms(ra)], ["Dec", decDms(dec)], ["ICRS", `${ra.toFixed(4)}° ${dec >= 0 ? "+" : ""}${dec.toFixed(4)}°`], ["FoV", `${f(fov, 2)}°`], ["Constellation", constellation || "—"]].map(([k, val]) => (
+              <div key={k} className="flex items-baseline gap-1.5">
+                <dt className="text-faint">{k}</dt>
+                <dd className={k === "Constellation" ? "text-text" : "num text-text"}>{val}</dd>
               </div>
-              <Link href={href("/timeline", { ra: obsAt?.ra ?? ra, dec: obsAt?.dec ?? dec, det: v.det ?? 1 })}
-                className="h-8 grid place-items-center rounded bg-accent text-[#04121f] text-[13px] font-medium hover:brightness-110">
-                Open observation timeline
-              </Link>
-            </section>
-          )}
+            ))}
+          </dl>
+        </div>
+        <div className="relative flex-1 min-h-[56dvh] lg:min-h-0 bg-plate">
+          <SkyMap
+            ra={ra} dec={dec} fov={fov} survey={survey} cubeSlice={slice} footprints={footprints} markers={markers}
+            showSimbad={showSimbad} showGrid={showGrid} layers={layers}
+            onMove={(r, d, fv) => setView({ ra: r, dec: d, fov: fv })}
+            onMarkerClick={(id) => { if (id.startsWith("ST-")) router.push(href(`/discovery/${id}`, { ra, dec })); }}
+          />
+        </div>
+        <div className="min-h-7 px-3 py-1 flex flex-wrap items-center gap-x-5 gap-y-0.5 border-t border-line text-[11px] text-faint">
+          <span>Background <span className="text-muted">{surveyLabel}</span></span>
+          <span>Footprints <span className="num text-muted">D{det} · {footprints.length}</span></span>
+          <span>Candidates <span className="num text-muted">{cands.length}</span></span>
+          <span className="sm:ml-auto">Data NASA/IPAC IRSA · SPHEREx DR1 · viewer Aladin Lite (CDS)</span>
+        </div>
+      </section>
 
-          <section className="flex flex-col gap-2">
-            <h3 className="text-[11px] uppercase tracking-wider text-faint">Layers</h3>
-            <label className="flex flex-col gap-1 text-[12px] text-muted">
-              Background
-              <select value={survey} onChange={(e) => setSurvey(e.target.value)} className="h-8 bg-bg border border-line-strong rounded px-2 text-text">
-                {SURVEYS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-              </select>
-            </label>
-            {survey === "spherex" && (
-              <label className="flex flex-col gap-1 text-[12px] text-muted">
-                SPHEREx cube channel <span className="num text-text">{slice + 1} / 102</span>
-                <input type="range" min={0} max={101} value={slice} onChange={(e) => setSlice(+e.target.value)} />
-                <span className="text-[11px] text-faint">IRSA DR1 all-sky spectral cube; channels run from 0.75 to 5 µm.</span>
+      {/* Inspector */}
+      <aside className="w-full lg:w-[360px] shrink-0 border-t lg:border-t-0 lg:border-l border-line flex flex-col min-h-0 lg:overflow-y-auto bg-bg">
+        <div className="px-4 pb-6 flex flex-col gap-5 text-[13px]">
+          <Panel title="Observations at this position" right={
+            <button onClick={() => queryObs(ra, dec)} disabled={loadingObs} className="text-[12px] text-muted hover:text-text underline decoration-line-strong disabled:opacity-50">
+              {loadingObs ? "Querying IRSA…" : stale ? "Query map centre" : "Refresh"}
+            </button>}>
+            <div className="flex flex-col gap-3">
+              <ErrorNote error={err} />
+              {loadingObs && !obs && <Progress value={0.3} label="Querying IRSA SIA for SPHEREx DR1 images…" />}
+              {obs && (
+                <>
+                  {stale && <p className="text-[12px] text-warn">Counts below are for {obsAt!.ra.toFixed(3)}, {obsAt!.dec.toFixed(3)}, not the map centre.</p>}
+                  <MetaList labelWidth="6.5rem" rows={[
+                    ["Images", `${obs.n_products} Level 2`],
+                    ["Exposures", obs.n_exposures],
+                    ["First", range ? fmtDate(range[0]) : "—"],
+                    ["Last", range ? fmtDate(range[1]) : "—"],
+                  ]} />
+                  {obs.n_products === 0 ? (
+                    <p className="text-[12px] text-muted">No public SPHEREx DR1 image covers this position. Try another target.</p>
+                  ) : (
+                    <table className="w-full text-[12px]" aria-label="Images per detector">
+                      <thead><tr className="text-faint text-left"><th className="font-normal py-1">Detector</th><th className="font-normal">Band</th><th className="font-normal text-right">Images</th></tr></thead>
+                      <tbody>
+                        {Object.entries(obs.detectors).map(([d, n]) => (
+                          <tr key={d} onClick={() => setView({ det: +d })} aria-selected={det === +d}
+                            className={`border-t border-line cursor-pointer ${det === +d ? "bg-panel-2" : "hover:bg-panel"}`}>
+                            <td className="py-1.5 pl-1">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="det" checked={det === +d} onChange={() => setView({ det: +d })} aria-label={`Show detector ${d} footprints`} />
+                                <span className="w-2.5 h-2.5" style={{ background: DETECTOR_COLORS[+d] }} aria-hidden /> <span className="num">D{d}</span>
+                              </label>
+                            </td>
+                            <td className="num text-muted">{BANDS[+d]}</td>
+                            <td className="num text-right pr-1">{n}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                  <Link href={href("/timeline", { ra: obsAt?.ra ?? ra, dec: obsAt?.dec ?? dec, det })} className={primaryLinkCls}>
+                    Open observation timeline, D{det}
+                  </Link>
+                </>
+              )}
+            </div>
+          </Panel>
+
+          <Panel title="Map layers">
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-[12px] text-muted">
+                <span className="w-20 shrink-0">Background</span>
+                <select value={survey} onChange={(e) => setSurvey(e.target.value)} className={`${inputCls} flex-1 min-w-0`}>
+                  {SURVEYS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
               </label>
+              {survey === "spherex" && (
+                <label className="flex flex-col gap-1 text-[12px] text-muted">
+                  <span>Cube channel <span className="num text-text">{slice + 1} / 102</span> <span className="text-faint">(0.75–5 µm, IRSA DR1 all-sky cube)</span></span>
+                  <input type="range" min={0} max={101} value={slice} onChange={(e) => setSlice(+e.target.value)} />
+                </label>
+              )}
+              <ul className="flex flex-col">
+                {layerRows.map(([label, val, set, color, disabled]) => (
+                  <li key={label}>
+                    <label className={`flex items-center gap-2 py-1 text-[12px] ${disabled ? "text-faint" : ""}`}>
+                      <input type="checkbox" checked={val} disabled={disabled} onChange={(e) => set(e.target.checked)} />
+                      <span className="w-3 h-[3px]" style={{ background: color }} aria-hidden />
+                      {label}
+                      {label === "Coverage cells" && disabled && <span className="text-faint">— compute below</span>}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              {layerErr && <p className="text-[12px] text-warn" role="status">{layerErr}</p>}
+            </div>
+          </Panel>
+
+          <Panel title="Coverage map" right={<span className="num text-faint">0.5° × 0.5°</span>}>
+            <div className="flex flex-col gap-2">
+              {!cov && !covJob && (
+                <>
+                  <p className="text-[12px] text-muted">Counts images, exposures, independent visits and spectrally matched pairs on a 12 × 12 grid, from every image header in the field.</p>
+                  <Button onClick={computeCoverage} className="self-start">Compute coverage</Button>
+                </>
+              )}
+              {covJob && covJob.status !== "done" && !cov && <Progress value={covJob.progress} label={covJob.message} />}
+              {cov && (Math.abs(cov.ra - ra) > 0.3 || Math.abs(cov.dec - dec) > 0.3) && <Button variant="ghost" className="self-start px-0" onClick={computeCoverage}>Recompute for the map centre</Button>}
+              {cov && <CoverageHeatmap map={cov} metric={covMetric} onMetric={setCovMetric} onCell={(r, d) => setView({ ra: r, dec: d })} />}
+            </div>
+          </Panel>
+
+          <Panel title={`Candidates in view (${cands.length})`}>
+            {cands.length === 0 ? (
+              <p className="text-[12px] text-muted">No processed candidates here yet. Pick two epochs on the timeline and run a comparison.</p>
+            ) : (
+              <table className="w-full text-[12px]">
+                <tbody>
+                  {cands.slice(0, 12).map((c) => (
+                    <tr key={c.id} className="border-t border-line">
+                      <td className="py-1.5"><Link href={href(`/discovery/${c.id}`, { ra, dec })} className="num hover:text-accent">{c.id}</Link></td>
+                      <td className="text-muted truncate max-w-[9rem]">{CLASS_LABEL[c.machine_class]}</td>
+                      <td className={`num text-right ${c.sign > 0 ? "text-pos" : "text-neg"}`}>{c.peak_significance >= 0 ? "+" : ""}{c.peak_significance.toFixed(1)}σ</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
-            {[
-              [`SPHEREx footprints (detector ${v.det ?? 1})`, showFp, setShowFp, DETECTOR_COLORS[v.det ?? 1]],
-              ["Constellation boundaries (IAU)", lay.bounds, (b: boolean) => setLay({ ...lay, bounds: b }), "#a07a2c"],
-              ["Constellation figures (traditional)", lay.lines, (b: boolean) => setLay({ ...lay, lines: b }), "#8592a5"],
-              ["Known objects — SIMBAD (CDS, in Aladin)", showSimbad, setShowSimbad, "#c9a7ff"],
-              ["Galaxies (SIMBAD)", lay.galaxies, (b: boolean) => setLay({ ...lay, galaxies: b }), SERIES[6]],
-              ["Nebulae & ISM (SIMBAD)", lay.nebulae, (b: boolean) => setLay({ ...lay, nebulae: b }), SERIES[2]],
-              ["Saved candidates", lay.saved, (b: boolean) => setLay({ ...lay, saved: b }), SERIES[3]],
-              ["Coverage cells", lay.coverage, (b: boolean) => setLay({ ...lay, coverage: b }), "#3987e5"],
-              ["Coordinate grid", showGrid, setShowGrid, "#2b3646"],
-            ].map(([label, val, set, color]: any) => (
-              <label key={label} className="flex items-center gap-2 text-[12px]">
-                <input type="checkbox" checked={val} disabled={label === "Coverage cells" && !cov} onChange={(e) => set(e.target.checked)} />
-                <span className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} aria-hidden /> {label}
-              </label>
-            ))}
-            {layerErr && <p className="text-[11px] text-warn" role="status">{layerErr}</p>}
-            <p className="text-[11px] text-faint">All layers use ICRS coordinates. Boundaries and figures: d3-celestial v0.7.32 (IAU boundaries; figures are cultural). Object types from SIMBAD (CDS, Harvard mirror fallback).</p>
-          </section>
+          </Panel>
 
-          <section className="flex flex-col gap-2">
-            <h3 className="text-[11px] uppercase tracking-wider text-faint">Coverage heatmap (0.5° field)</h3>
-            {!cov && !covJob && <><p className="text-[12px] text-muted">Counts images, exposures, independent visits and spectrally matched pairs on a 12×12 grid from every image header in the field.</p><Button onClick={computeCoverage}>Compute coverage</Button></>}
-            {covJob && covJob.status !== "done" && !cov && <Progress value={covJob.progress} label={covJob.message} />}
-            {cov && (Math.abs(cov.ra - ra) > 0.3 || Math.abs(cov.dec - dec) > 0.3) && <Button variant="ghost" onClick={computeCoverage}>Recompute for this position</Button>}
-            {cov && <CoverageHeatmap map={cov} metric={covMetric} onMetric={setCovMetric} onCell={(r, d) => setView({ ra: r, dec: d })} />}
-          </section>
-
-          <section className="flex flex-col gap-1">
-            <h3 className="text-[11px] uppercase tracking-wider text-faint">Processed candidates in view ({cands.length})</h3>
-            {cands.length === 0 && <p className="text-[12px] text-muted">None yet. Run a comparison from the Timeline.</p>}
-            {cands.slice(0, 12).map((c) => (
-              <Link key={c.id} href={href(`/discovery/${c.id}`, { ra, dec })} className="flex items-center gap-2 py-1 border-b border-line text-[12px] hover:text-accent">
-                <span className={`w-1.5 h-1.5 rounded-full ${c.sign > 0 ? "bg-pos" : "bg-neg"}`} />
-                <span className="num">{c.id}</span>
-                <span className="text-muted truncate">{CLASS_LABEL[c.machine_class]}</span>
-                <span className="ml-auto num text-muted">{c.peak_significance.toFixed(1)}σ</span>
-              </Link>
-            ))}
-          </section>
+          <p className="text-[11px] text-faint leading-relaxed border-t border-line pt-3">
+            All layers in ICRS. Constellations: d3-celestial v0.7.32 (IAU boundaries; figures are cultural). Object types: SIMBAD (CDS, Harvard mirror fallback). Sky Time Machine, by Snack Seekers.
+          </p>
         </div>
       </aside>
     </div>

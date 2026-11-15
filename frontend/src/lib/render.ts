@@ -63,9 +63,9 @@ export function toRGBA(data: Float32Array, rows: number, cols: number, lim: Limi
       const o = (r * cols + c) * 4;
       if (!isFinite(v)) {
         const hatch = (r + c) % 4 === 0;
-        out[o] = hatch ? 52 : 22;
-        out[o + 1] = hatch ? 60 : 26;
-        out[o + 2] = hatch ? 74 : 34;
+        out[o] = hatch ? 62 : 28;
+        out[o + 1] = hatch ? 60 : 28;
+        out[o + 2] = hatch ? 55 : 26;
         out[o + 3] = 255;
         continue;
       }
@@ -73,10 +73,10 @@ export function toRGBA(data: Float32Array, rows: number, cols: number, lim: Limi
       if (cmap === "diverging") {
         const t = Math.max(-1, Math.min(1, (v - (lim.lo + lim.hi) / 2) / (span / 2)));
         const m = stretchUnit(Math.abs(t), s);
-        // fading = cyan-blue, brightening = orange; neutral = near black
-        rgb = t >= 0 ? [20 + 235 * m, 20 + 118 * m, 24 + 68 * m] : [20 + 72 * m, 22 + 178 * m, 26 + 229 * m];
+        // brightening = burnt orange, fading = muted steel; neutral = charcoal (no hue at zero)
+        rgb = t >= 0 ? [22 + 218 * m, 22 + 112 * m, 21 + 46 * m] : [22 + 116 * m, 22 + 150 * m, 21 + 197 * m];
       } else if (cmap === "mask") {
-        rgb = v > 0.5 ? [111, 211, 155] : [40, 20, 28];
+        rgb = v > 0.5 ? [169, 178, 108] : [46, 34, 30];
       } else {
         const m = stretchUnit((v - lim.lo) / span, s);
         rgb = cmap === "inferno" ? ramp(INFERNO, m) : [255 * m, 255 * m, 255 * m];

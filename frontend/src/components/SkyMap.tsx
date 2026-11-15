@@ -4,6 +4,7 @@
 // at a pinned version. All overlay data comes from the archive or our API.
 
 import { useEffect, useRef, useState } from "react";
+import { MAP_COLORS } from "@/lib/astro";
 
 const ALADIN_URL = "https://cdn.jsdelivr.net/npm/aladin-lite@3.8.2/dist/aladin.js";
 
@@ -96,6 +97,8 @@ export function SkyMap(p: Props) {
           target: `${p.ra} ${p.dec}`,
           cooFrame: "ICRS",
           showReticle: true,
+          reticleColor: MAP_COLORS.saved,
+          reticleSize: 18,
           showCooGrid: p.showGrid,
           showCooGridControl: false,
           showLayersControl: false,
@@ -244,10 +247,10 @@ export function SkyMap(p: Props) {
     c.cat.removeAll();
     c.cat.addSources(
       p.markers.map((m) =>
-        c.A.source(m.ra, m.dec, { id: m.id, label: m.label }, { color: m.selected ? "#ffffff" : m.color }),
+        c.A.source(m.ra, m.dec, { id: m.id, label: m.label }, { color: m.selected ? "#ece8df" : m.color }),
       ),
     );
-    c.cat.updateShape?.({ color: (s: any) => p.markers.find((m) => m.id === s.data.id)?.color ?? "#fff" });
+    c.cat.updateShape?.({ color: (s: any) => p.markers.find((m) => m.id === s.data.id)?.color ?? "#ece8df" });
   }, [p.markers, ready]);
 
   // SIMBAD catalogue (CDS) around the current position
@@ -260,7 +263,7 @@ export function SkyMap(p: Props) {
     }
     if (p.showSimbad) {
       const rad = Math.min(1, p.fov / 2);
-      c.simbad = c.A.catalogFromSimbad({ ra: p.ra, dec: p.dec }, rad, { name: "SIMBAD", color: "#c9a7ff", sourceSize: 8, onClick: "showPopup" });
+      c.simbad = c.A.catalogFromSimbad({ ra: p.ra, dec: p.dec }, rad, { name: "SIMBAD", color: MAP_COLORS.simbad, sourceSize: 8, onClick: "showPopup" });
       c.aladin.addCatalog(c.simbad);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -272,8 +275,13 @@ export function SkyMap(p: Props) {
       <div className="absolute inset-0">
         <div ref={div} style={{ width: "100%", height: "100%" }} aria-label="Interactive sky map" />
       </div>
-      {!ready && !err && <div className="absolute inset-0 grid place-items-center text-faint text-sm">Loading sky viewer…</div>}
-      {err && <div className="absolute inset-x-4 top-20 border border-bad/40 bg-panel text-bad text-sm rounded px-3 py-2">{err}</div>}
+      {!ready && !err && <div className="absolute inset-0 grid place-items-center text-faint text-[12px] num" role="status">Loading sky viewer (Aladin Lite 3.8.2)…</div>}
+      {err && (
+        <div role="alert" className="absolute left-4 right-4 top-4 bg-panel border-l-2 border-bad px-3 py-2 text-[13px]">
+          <span className="text-bad font-medium">Sky map unavailable. </span><span className="text-text">{err}</span>
+          <p className="text-muted text-[12px] mt-1">Observation queries, the timeline and comparisons still work without the map.</p>
+        </div>
+      )}
     </div>
   );
 }

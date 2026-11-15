@@ -19,12 +19,12 @@ function SkyPlot({ tracks, ra0, dec0, radius }: { tracks: Track[]; ra0: number; 
     const dy = (dec - dec0) * 3600;
     return [c - dx * sc, c - dy * sc];
   };
-  const col: Record<string, string> = { stationary_repeated: "#6fd39b", potential_moving_object: "#f2b45a", single_detection: "#8592a5" };
+  const col: Record<string, string> = { stationary_repeated: "var(--good)", potential_moving_object: "var(--accent)", single_detection: "var(--muted)" };
   return (
     <svg viewBox={`0 0 ${S} ${S}`} className="w-full max-w-[360px] h-auto" role="img" aria-label="Track positions relative to the search centre">
-      <circle cx={c} cy={c} r={S / 2 - 16} fill="none" stroke="#1e2633" />
-      <line x1={c} x2={c} y1={8} y2={S - 8} stroke="#121821" /><line y1={c} y2={c} x1={8} x2={S - 8} stroke="#121821" />
-      <text x={c + 4} y={14} fontSize="10" fill="#566275">N</text><text x={10} y={c - 4} fontSize="10" fill="#566275">E</text>
+      <circle cx={c} cy={c} r={S / 2 - 16} fill="none" stroke="var(--line-strong)" />
+      <line x1={c} x2={c} y1={8} y2={S - 8} stroke="var(--line)" /><line y1={c} y2={c} x1={8} x2={S - 8} stroke="var(--line)" />
+      <text x={c + 4} y={14} fontSize="10" fill="var(--muted)">N</text><text x={10} y={c - 4} fontSize="10" fill="var(--muted)">E</text>
       {tracks.map((t) => {
         const [x, y] = pt(t.ra, t.dec);
         return <circle key={t.id} cx={x} cy={y} r={t.kind === "single_detection" ? 2.5 : 4.5} fill={col[t.kind]}><title>{`${t.id} · ${TRACK_LABEL[t.kind]}`}</title></circle>;
@@ -59,9 +59,9 @@ function Tracking() {
   const groups = res ? ["potential_moving_object", "stationary_repeated", "single_detection"].map((k) => ({ k, items: res.tracks.filter((t) => t.kind === k) })) : [];
 
   return (
-    <div className="p-4 max-w-[1300px] w-full mx-auto flex flex-col gap-4">
+    <div className="px-4 sm:px-6 py-6 max-w-[1300px] w-full mx-auto flex flex-col gap-4">
       <div>
-        <h1 className="text-lg font-semibold">Candidate tracking</h1>
+        <h1 className="serif text-[26px] leading-tight font-semibold tracking-[-0.01em]">Candidate tracking</h1>
         <p className="text-[12px] text-muted">Associates candidates from different comparisons by position, uncertainty and time. An association means the measurements are consistent, not that the detections are the same physical object.</p>
       </div>
       <form onSubmit={run} className="flex flex-wrap items-end gap-3">
@@ -87,7 +87,7 @@ function Tracking() {
                         {k === "stationary_repeated" && <span className="num text-muted">max sep {f(t.metrics.max_separation_sigma, 2)}σ · ΔF {t.metrics.diff_flux_ujy?.map((x: number) => x.toFixed(0)).join(", ")} µJy</span>}
                         {k === "potential_moving_object" && <span className="num text-warn">{f(t.metrics.rate_arcsec_per_hr, 2)}″/h · PA {f(t.metrics.pa_deg, 0)}° · residual {f(t.metrics.prediction_residual_arcsec, 1)}″ (tol {f(t.metrics.tolerance_arcsec, 1)}″)</span>}
                         <span className="text-faint num">{(t.metrics.epochs_mjd ?? []).map((m: number) => fmtDate(m, false)).join(" · ")}</span>
-                        <span className="w-full">{t.members.map((mid) => <Link key={mid} href={`/discovery/${mid}`} className="num text-accent mr-3">{mid}</Link>)}</span>
+                        <span className="w-full">{t.members.map((mid) => <Link key={mid} href={`/discovery/${mid}`} className="num mr-3 underline decoration-line-strong hover:text-accent">{mid}</Link>)}</span>
                       </li>
                     ))}
                   </ul>

@@ -85,7 +85,7 @@ export function ImageCanvas({ layer, title, kind, subtitle, limits, stretch, cma
     c.height = Math.round(size.h * dpr);
     const g = c.getContext("2d")!;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.fillStyle = "#000";
+    g.fillStyle = "#0e0e0d";
     g.fillRect(0, 0, size.w, size.h);
     if (!bitmap || !layer) return;
     g.imageSmoothingEnabled = false;
@@ -99,14 +99,14 @@ export function ImageCanvas({ layer, title, kind, subtitle, limits, stretch, cma
       g.beginPath();
       g.arc(sx, sy, rr, 0, Math.PI * 2);
       g.lineWidth = m.selected ? 2 : 1.25;
-      g.strokeStyle = m.dim ? "rgba(140,150,165,0.6)" : m.sign > 0 ? "#ff8a5c" : "#5cc8ff";
+      g.strokeStyle = m.dim ? "rgba(167,161,148,0.6)" : m.sign > 0 ? "#e07a3a" : "#7fa3cc";
       if (m.dim) g.setLineDash([3, 3]);
       g.stroke();
       g.setLineDash([]);
       if (m.selected) {
         g.beginPath();
         g.arc(sx, sy, rr + 5, 0, Math.PI * 2);
-        g.strokeStyle = "rgba(255,255,255,0.8)";
+        g.strokeStyle = "rgba(236,232,223,0.9)";
         g.lineWidth = 1;
         g.stroke();
       }
@@ -141,13 +141,13 @@ export function ImageCanvas({ layer, title, kind, subtitle, limits, stretch, cma
   };
 
   return (
-    <figure className={`relative flex flex-col border border-line rounded-md overflow-hidden bg-black ${className}`}>
-      <figcaption className="flex items-center gap-2 px-2 h-8 bg-panel border-b border-line text-[12px]">
+    <figure className={`relative flex flex-col overflow-hidden ${className}`}>
+      <figcaption className="flex items-center gap-2 h-7 text-[12px] min-w-0">
         <KindBadge kind={kind} />
         <span className="font-medium truncate">{title}</span>
-        {subtitle && <span className="text-faint truncate hidden sm:inline">{subtitle}</span>}
+        {subtitle && <span className="text-muted truncate hidden sm:inline">{subtitle}</span>}
       </figcaption>
-      <div ref={wrap} className="relative flex-1 min-h-[180px]">
+      <div ref={wrap} className="relative flex-1 min-h-[180px] bg-plate border border-line">
         <canvas
           ref={ref}
           tabIndex={0}
@@ -191,8 +191,8 @@ export function ImageCanvas({ layer, title, kind, subtitle, limits, stretch, cma
           }}
           onPointerLeave={() => setHover(null)}
         />
-        {!layer && <div className="absolute inset-0 grid place-items-center text-faint text-[12px]">Loading…</div>}
-        <div className="absolute bottom-1 left-1 right-1 flex justify-between text-[10px] num text-muted pointer-events-none">
+        {!layer && <div className="absolute inset-0 grid place-items-center text-[#78736a] text-[12px] num" role="status">Loading layer…</div>}
+        <div className="absolute bottom-0 left-0 right-0 px-1.5 py-0.5 flex justify-between text-[10px] num text-[#c9c3b6] bg-[#0e0e0d]/70 pointer-events-none">
           <span>{hover ? `x ${hover.x}  y ${hover.y}  ${isFinite(hover.v) ? hover.v.toPrecision(4) : "masked"}${unit && isFinite(hover.v) ? " " + unit : ""}` : "N↑ E←"}</span>
           <span>{view.zoom.toFixed(1)}×</span>
         </div>

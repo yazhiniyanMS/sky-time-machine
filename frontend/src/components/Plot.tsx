@@ -99,33 +99,33 @@ export function Plot({ points, series, xLabel, yLabel, logY, height = 280, xForm
         onMouseMove={(e) => setHover(nearest(e.clientX, e.clientY))} onMouseLeave={() => setHover(null)}
         onClick={(e) => { const p = nearest(e.clientX, e.clientY); if (p && onPoint) onPoint(p); }}>
         {shadeX.map((s, i) => (
-          <rect key={i} x={sx(s.from)} y={T} width={Math.max(0, sx(s.to) - sx(s.from))} height={H - T - B} fill="#121821">
+          <rect key={i} x={sx(s.from)} y={T} width={Math.max(0, sx(s.to) - sx(s.from))} height={H - T - B} fill="var(--panel-2)">
             <title>{s.label}</title>
           </rect>
         ))}
         {yt.map((v) => (
           <g key={`y${v}`}>
-            <line x1={L} x2={W - R} y1={sy(v)} y2={sy(v)} stroke="#161d27" />
-            <text x={L - 6} y={sy(v) + 3} fontSize="10" textAnchor="end" fill="#8592a5" className="num">{fmtY(v)}</text>
+            <line x1={L} x2={W - R} y1={sy(v)} y2={sy(v)} stroke="var(--line)" />
+            <text x={L - 6} y={sy(v) + 3} fontSize="10" textAnchor="end" fill="var(--muted)" className="num">{fmtY(v)}</text>
           </g>
         ))}
         {xt.map((v) => (
-          <text key={`x${v}`} x={sx(v)} y={H - B + 14} fontSize="10" textAnchor="middle" fill="#8592a5" className="num">{fmtX(v)}</text>
+          <text key={`x${v}`} x={sx(v)} y={H - B + 14} fontSize="10" textAnchor="middle" fill="var(--muted)" className="num">{fmtX(v)}</text>
         ))}
-        <line x1={L} x2={W - R} y1={H - B} y2={H - B} stroke="#2b3646" />
-        <line x1={L} x2={L} y1={T} y2={H - B} stroke="#2b3646" />
-        <text x={(L + W - R) / 2} y={H - 6} fontSize="11" textAnchor="middle" fill="#8592a5">{xLabel}</text>
-        <text x={12} y={(T + H - B) / 2} fontSize="11" textAnchor="middle" fill="#8592a5" transform={`rotate(-90 12 ${(T + H - B) / 2})`}>{yLabel}</text>
-        {hLine && <g><line x1={L} x2={W - R} y1={sy(hLine.y)} y2={sy(hLine.y)} stroke="#566275" strokeDasharray="4 4" /><text x={W - R - 4} y={sy(hLine.y) - 4} fontSize="10" textAnchor="end" fill="#8592a5">{hLine.label}</text></g>}
+        <line x1={L} x2={W - R} y1={H - B} y2={H - B} stroke="var(--line-strong)" />
+        <line x1={L} x2={L} y1={T} y2={H - B} stroke="var(--line-strong)" />
+        <text x={(L + W - R) / 2} y={H - 6} fontSize="11" textAnchor="middle" fill="var(--muted)">{xLabel}</text>
+        <text x={12} y={(T + H - B) / 2} fontSize="11" textAnchor="middle" fill="var(--muted)" transform={`rotate(-90 12 ${(T + H - B) / 2})`}>{yLabel}</text>
+        {hLine && <g><line x1={L} x2={W - R} y1={sy(hLine.y)} y2={sy(hLine.y)} stroke="var(--faint)" strokeDasharray="4 4" /><text x={W - R - 4} y={sy(hLine.y) - 4} fontSize="10" textAnchor="end" fill="var(--muted)">{hLine.label}</text></g>}
         {markersX.map((m) => (
-          <g key={m.label}><line x1={sx(m.x)} x2={sx(m.x)} y1={T} y2={H - B} stroke="#f2b45a" strokeDasharray="2 3" /><text x={sx(m.x) + 3} y={T + 10} fontSize="10" fill="#f2b45a">{m.label}</text></g>
+          <g key={m.label}><line x1={sx(m.x)} x2={sx(m.x)} y1={T} y2={H - B} stroke="var(--accent)" strokeDasharray="2 3" /><text x={sx(m.x) + 3} y={T + 10} fontSize="10" fill="var(--accent)">{m.label}</text></g>
         ))}
         {series.filter((s) => s.line).map((s) => {
           const ps = usable.filter((p) => p.series === s.key && !p.dim).sort((a, b) => a.x - b.x);
           return <polyline key={s.key} points={ps.map((p) => `${sx(p.x)},${sy(p.y)}`).join(" ")} fill="none" stroke={s.color} strokeWidth={2} opacity={0.85} />;
         })}
         {usable.map((p, i) => {
-          const c = colors[p.series] ?? "#8592a5";
+          const c = colors[p.series] ?? "var(--muted)";
           const sel = selectedId && p.id === selectedId;
           return (
             <g key={i} opacity={p.dim ? 0.35 : 1}>
@@ -135,12 +135,12 @@ export function Plot({ points, series, xLabel, yLabel, logY, height = 280, xForm
               {p.xErr != null && p.xErr > 0 && (
                 <line x1={sx(p.x - p.xErr)} x2={sx(p.x + p.xErr)} y1={sy(p.y)} y2={sy(p.y)} stroke={c} strokeWidth={1} opacity={0.6} />
               )}
-              <circle cx={sx(p.x)} cy={sy(p.y)} r={sel ? 5 : 3.5} fill={c} stroke="#0d1117" strokeWidth={2} />
+              <circle cx={sx(p.x)} cy={sy(p.y)} r={sel ? 5 : 3.5} fill={c} stroke="var(--bg)" strokeWidth={2} />
               {sel && <circle cx={sx(p.x)} cy={sy(p.y)} r={8} fill="none" stroke="#fff" strokeWidth={1} />}
             </g>
           );
         })}
-        {hover && <line x1={sx(hover.x)} x2={sx(hover.x)} y1={T} y2={H - B} stroke="#566275" strokeDasharray="2 2" />}
+        {hover && <line x1={sx(hover.x)} x2={sx(hover.x)} y1={T} y2={H - B} stroke="var(--faint)" strokeDasharray="2 2" />}
       </svg>
       {hover && (
         <div className="absolute pointer-events-none bg-panel-2 border border-line-strong rounded px-2 py-1 text-[11px] num shadow-lg"

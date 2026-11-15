@@ -5,20 +5,19 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { readViewState, toQuery } from "@/lib/viewstate";
 
+// Ordered by how a session usually flows: find a position, list its epochs, compare, inspect.
 const ITEMS = [
   { href: "/", label: "Explore" },
   { href: "/timeline", label: "Timeline" },
+  { href: "/compare", label: "Compare" },
   { href: "/discoveries", label: "Discoveries" },
   { href: "/spectra", label: "Spectra" },
   { href: "/tracking", label: "Tracking" },
   { href: "/investigations", label: "Investigations" },
   { href: "/watchlists", label: "Watchlists" },
-  { href: "/intelligence", label: "Sky Intelligence" },
+  { href: "/intelligence", label: "Assistant" },
 ];
-const SECONDARY = [
-  { href: "/compare", label: "Compare" },
-  { href: "/community", label: "Community" },
-];
+const SECONDARY = [{ href: "/community", label: "Community" }];
 
 export function Nav() {
   const path = usePathname();
@@ -29,40 +28,39 @@ export function Nav() {
   const carry = toQuery({ ra: v.ra, dec: v.dec, fov: v.fov, det: v.det, a: v.a, b: v.b, size: v.size, cand: v.cand });
   const active = (h: string) =>
     h === "/" ? path === "/" : path.startsWith(h) || (h === "/discoveries" && path.startsWith("/discovery"));
-  const link = (it: { href: string; label: string }, cls: string) => (
+  const link = (it: { href: string; label: string }, cls: string, activeCls: string) => (
     <Link key={it.href} href={`${it.href}${carry}`} aria-current={active(it.href) ? "page" : undefined}
       onClick={() => setOpen(false)}
-      className={`${cls} ${active(it.href) ? "text-text bg-panel-2" : "text-muted hover:text-text"}`}>
+      className={`${cls} ${active(it.href) ? activeCls : "text-muted hover:text-text border-transparent"}`}>
       {it.label}
     </Link>
   );
 
   return (
-    <header className="h-12 shrink-0 border-b border-line bg-bg/95 backdrop-blur z-30 relative">
-      <div className="h-full px-4 flex items-center gap-5">
-        <Link href={`/${carry}`} className="flex items-center gap-2 shrink-0" aria-label="Sky Time Machine home">
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
-            <circle cx="12" cy="12" r="9.5" fill="none" stroke="var(--accent)" strokeWidth="1.5" />
-            <path d="M12 6v6l4 2" stroke="var(--text)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-            <circle cx="18.5" cy="5.5" r="1.4" fill="var(--derived)" />
+    <header className="h-11 shrink-0 border-b border-line-strong bg-bg z-30 relative">
+      <div className="h-full px-4 flex items-stretch gap-6">
+        <Link href={`/${carry}`} className="flex items-center gap-2.5 shrink-0" aria-label="Sky Time Machine home">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className="text-text">
+            <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.25" />
+            <path d="M8 4v4l2.6 1.6" stroke="currentColor" strokeWidth="1.25" fill="none" />
           </svg>
-          <span className="text-[13px] font-semibold tracking-wide">Sky Time Machine</span>
+          <span className="serif text-[16px] font-semibold tracking-[-0.01em]">Sky Time Machine</span>
         </Link>
-        <nav className="hidden xl:flex items-center gap-0.5 text-[13px]" aria-label="Main">
-          {ITEMS.map((it) => link(it, "px-2.5 py-1.5 rounded transition-colors"))}
+        <nav className="hidden xl:flex items-stretch text-[13px]" aria-label="Main">
+          {ITEMS.map((it) => link(it, "px-2.5 flex items-center border-b-2 -mb-px transition-colors", "text-text border-text font-medium"))}
         </nav>
-        <nav className="hidden xl:flex items-center gap-0.5 text-[12px] ml-auto border-l border-line pl-3" aria-label="Tools">
-          {SECONDARY.map((it) => link(it, "px-2 py-1 rounded transition-colors"))}
-        </nav>
-        <div className="hidden 2xl:block text-[11px] text-faint">Data: NASA/IPAC IRSA · SPHEREx DR1</div>
-        <button className="xl:hidden ml-auto text-muted text-sm px-2 py-1 border border-line rounded" aria-expanded={open}
+        <div className="hidden xl:flex items-center gap-4 ml-auto text-[12px]">
+          {SECONDARY.map((it) => link(it, "", "text-text font-medium"))}
+          <span className="num text-[11px] text-faint border-l border-line pl-4">SPHEREx DR1 · NASA/IPAC IRSA</span>
+        </div>
+        <button className="xl:hidden ml-auto self-center h-8 text-[13px] px-3 border border-line-strong rounded-sm" aria-expanded={open}
           aria-controls="mobile-nav" onClick={() => setOpen((o) => !o)}>
-          Menu
+          {open ? "Close" : "Menu"}
         </button>
       </div>
       {open && (
-        <nav id="mobile-nav" className="xl:hidden absolute top-12 inset-x-0 bg-panel border-b border-line p-2 grid grid-cols-2 gap-1 text-sm">
-          {[...ITEMS, ...SECONDARY].map((it) => link(it, "px-3 py-2 rounded"))}
+        <nav id="mobile-nav" className="xl:hidden absolute top-11 inset-x-0 bg-bg border-b border-line-strong text-[14px]">
+          {[...ITEMS, ...SECONDARY].map((it) => link(it, "block px-4 py-2.5 border-b border-line", "text-text font-medium bg-panel-2"))}
         </nav>
       )}
     </header>

@@ -52,10 +52,15 @@ export function parseCoords(text: string): { ra: number; dec: number } | null {
   return null;
 }
 
-// Categorical slots 1–6 of the validated reference palette, dark-surface steps
-// (dataviz validate_palette.js: all checks pass on #0d1117). Fixed order, never cycled.
-export const SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#e66767"];
-export const DETECTOR_COLORS: Record<number, string> = { 1: SERIES[0], 2: SERIES[1], 3: SERIES[2], 4: SERIES[3], 5: SERIES[4], 6: SERIES[5] };
+// Detectors D1–D6 are ordinal (ordered by wavelength) and always labelled. Colours come from the active
+// surface's CSS variables (docs/DESIGN_SYSTEM.md; presentation/scripts/check_palette.py --adjacent passes on both).
+export const DETECTOR_COLORS: Record<number, string> = { 1: "var(--d1)", 2: "var(--d2)", 3: "var(--d3)", 4: "var(--d4)", 5: "var(--d5)", 6: "var(--d6)" };
+// Hex steps for the graphite surface, for consumers that cannot read CSS variables (Aladin, canvas).
+export const DETECTOR_HEX_GRAPHITE: Record<number, string> = { 1: "#a3b6e3", 2: "#2a8e80", 3: "#9aa032", 4: "#f0c862", 5: "#d9653a", 6: "#9c6bc0" };
+// General categorical slots (visits, layers): the same ordered steps, then neutral greys. Fixed order, never cycled.
+export const SERIES = ["var(--d1)", "var(--d5)", "var(--d2)", "var(--d4)", "var(--d6)", "var(--d3)", "var(--muted)", "var(--faint)"];
+// Map overlay colours on the graphite sky map (hex for Aladin).
+export const MAP_COLORS = { footprint: "#f0c862", bounds: "#b08a4a", figures: "#8a857a", galaxies: "#a3b6e3", nebulae: "#9aa032", saved: "#e09a45", coverage: "#e09a45", grid: "#45433e", simbad: "#c9b8e8", brighten: "#e07a3a", fade: "#7fa3cc" };
 
 export const BANDS: Record<number, string> = {
   1: "0.75–1.09 µm",

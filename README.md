@@ -73,6 +73,7 @@ cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 - [Architecture](docs/ARCHITECTURE.md) · [Data sources](docs/DATA_SOURCES.md) · [Scientific methodology](docs/SCIENTIFIC_METHODOLOGY.md)
 - [Processing pipeline](docs/PROCESSING_PIPELINE.md) · [API](docs/API.md) · [Development](docs/DEVELOPMENT.md)
 - [Limitations](docs/LIMITATIONS.md) · [Contributing](CONTRIBUTING.md) · [Product expansion V2 plan](docs/PRODUCT_EXPANSION_V2.md)
+- [Design system](docs/DESIGN_SYSTEM.md) (web app and deck) · [Project demonstration deck](presentation/README.md) (Snack Seekers)
 
 ## Acknowledgements
 
