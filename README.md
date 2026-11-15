@@ -77,6 +77,6 @@ cd frontend && npm test && npm run lint && npm run typecheck && npm run build
 
 ## Acknowledgements
 
-This project uses data from SPHEREx, a joint project of NASA's Jet Propulsion Laboratory and Caltech, served by
+This project uses data from SPHEREx a joint project of NASA's Jet Propulsion Laboratory and Caltech, served by
 NASA/IPAC IRSA. Sky backgrounds: DSS2 and 2MASS HiPS (CDS, mirrored at IRSA). Sky viewer: Aladin Lite (CDS,
 GPL-3). Name resolution: CDS Sesame. Catalogues: SIMBAD (CDS; CfA mirror), Gaia DR3 (ESA). Constellations: d3-celestial (BSD-3). Scientific software: Astropy, NumPy, SciPy, reproject, photutils.
