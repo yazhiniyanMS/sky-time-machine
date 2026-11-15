@@ -1,409 +1,332 @@
-// Builds presentation/Sky-Time-Machine-Project-Demo.pptx from the assets in presentation/assets/build.
+// Builds presentation/Sky-Time-Machine-Project-Demo.pptx (Snack Seekers) from presentation/assets/build.
 // Run from presentation/:  node scripts/build_deck.js
-// Every number on the slides comes from the repository docs or from assets/m31_validation.json /
-// assets/m31_d1_spectral_timeline.json, which scripts/m31_psf_validation.py and the running API produced.
+// Visual system: docs/DESIGN_SYSTEM.md ("Plate & Graphite"), the same one the web app uses.
+// Every number on the slides comes from the repository docs, assets/m31_validation.json (scripts/m31_psf_validation.py)
+// or the app's API responses saved in assets/*.json.
 
 const path = require("path");
 const fs = require("fs");
 const pptxgen = require("pptxgenjs");
-const React = require("react");
-const ReactDOMServer = require("react-dom/server");
-const sharp = require("sharp");
-const { FiCrosshair, FiDatabase, FiLayers, FiSearch } = require("react-icons/fi");
 
 const ROOT = path.resolve(__dirname, "..");
 const B = (f) => path.join(ROOT, "assets", "build", f);
-const VAL = JSON.parse(fs.readFileSync(path.join(ROOT, "assets", "m31_validation.json"), "utf8"));
-const OBS = JSON.parse(fs.readFileSync(path.join(ROOT, "assets", "m31_observations.json"), "utf8"));
-const TL = JSON.parse(fs.readFileSync(path.join(ROOT, "assets", "m31_d1_spectral_timeline.json"), "utf8"));
+const J = (f) => JSON.parse(fs.readFileSync(path.join(ROOT, "assets", f), "utf8"));
+const VAL = J("m31_validation.json"), TL = J("m31_d1_spectral_timeline.json"), OBS = J("m31_observations.json");
 const OUT = path.join(ROOT, "Sky-Time-Machine-Project-Demo.pptx");
-const REPO = "https://github.com/yazhiniyanMS/sky-time-machine";
 
-// Palette: deep space navy, restrained cyan/blue accents. Orange appears only inside data (brightening).
-const COL = {
-  bg: "05080E",
-  surface: "0C121D",
-  surface2: "111A28",
-  line: "1F2B3D",
-  text: "EAF0F7",
-  soft: "BAC6D6",
-  muted: "8592A6",
-  cyan: "5BC8F5",
-  blue: "3987E5",
-  orange: "E0703A",
-  caution: "E3A44B",
+// Paper surface tokens (docs/DESIGN_SYSTEM.md). Office-safe type: Georgia / Arial / Courier New.
+const C = {
+  paper: "F4F1EA", ink: "1C1B19", muted: "5D594F", faint: "8A8578",
+  line: "DCD6C8", rule: "BFB7A6", accent: "B4561E", olive: "5F6B2E", amber: "A36A12",
 };
-const FONT = "Arial";
-const W = 13.333, H = 7.5, MX = 0.6;
+const DET = ["3B5788", "27A595", "686D12", "D9A53E", "C2552A", "7A2A2B"]; // D1–D6, paper steps
+const SERIF = "Georgia", SANS = "Arial", MONO = "Courier New";
+const W = 13.333, H = 7.5, MX = 0.6, CW = W - 2 * MX;
 
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE";
-pres.author = "Yazhiniyan M.S.";
-pres.company = "Sky Time Machine";
+pres.author = "Snack Seekers";
+pres.company = "Snack Seekers";
 pres.title = "Sky Time Machine — Project Demonstration";
 pres.subject = "Interactive time-domain explorer for NASA/IPAC SPHEREx observations";
-pres.theme = { headFontFace: FONT, bodyFontFace: FONT };
+pres.theme = { headFontFace: SERIF, bodyFontFace: SANS };
 
 pres.defineSlideMaster({
-  title: "STM_CONTENT",
-  background: { path: B("bg_stars.jpg") },
+  title: "PAPER",
+  background: { color: C.paper },
   objects: [
-    { text: { text: "Sky Time Machine", options: { x: MX, y: 7.0, w: 4, h: 0.3, fontFace: FONT, fontSize: 10, color: COL.muted, margin: 0 } } },
+    { text: { text: "Sky Time Machine  ·  Snack Seekers", options: { x: MX, y: 7.02, w: 6, h: 0.25, fontFace: SANS, fontSize: 9, color: C.faint, margin: 0 } } },
   ],
-  slideNumber: { x: W - MX - 0.6, y: 7.0, w: 0.6, h: 0.3, fontFace: FONT, fontSize: 10, color: COL.muted, align: "right" },
+  slideNumber: { x: W - MX - 0.5, y: 7.0, w: 0.5, h: 0.25, fontFace: MONO, fontSize: 9, color: C.faint, align: "right" },
 });
-pres.defineSlideMaster({ title: "STM_TITLE", background: { color: COL.bg } });
 
 // ---------- helpers ----------
-function text(slide, str, o) {
-  slide.addText(str, { fontFace: FONT, margin: 0, isTextBox: true, valign: "top", color: COL.text, ...o });
+const t = (s, str, o) => s.addText(str, { fontFace: SANS, margin: 0, isTextBox: true, valign: "top", color: C.ink, ...o });
+function head(s, n, label, title) {
+  t(s, [{ text: n, options: { fontFace: MONO, color: C.accent } }, { text: "   " + label, options: { color: C.muted } }], { x: MX, y: 0.42, w: 8, h: 0.25, fontSize: 11 });
+  t(s, title, { x: MX, y: 0.72, w: CW, h: 0.62, fontFace: SERIF, fontSize: 28, color: C.ink, valign: "middle" });
 }
-function header(slide, kicker, title) {
-  text(slide, kicker.toUpperCase(), { x: MX, y: 0.42, w: 9, h: 0.3, fontSize: 11, bold: true, color: COL.cyan, charSpacing: 1.5 });
-  text(slide, title, { x: MX, y: 0.74, w: W - 2 * MX, h: 0.6, fontSize: 30, bold: true, color: COL.text, valign: "middle" });
+const rule = (s, x, y, w, color = C.rule, wt = 0.75) => s.addShape(pres.shapes.LINE, { x, y, w, h: 0, line: { color, width: wt } });
+const vrule = (s, x, y, h, color = C.line) => s.addShape(pres.shapes.LINE, { x, y, w: 0, h, line: { color, width: 0.75 } });
+function plate(s, file, x, y, w, h, alt) {
+  s.addImage({ path: B(file), x, y, w, h, altText: alt || file });
+  s.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { type: "none" }, line: { color: C.rule, width: 0.5 } });
 }
-function card(slide, x, y, w, h, opts = {}) {
-  slide.addShape(pres.shapes.ROUNDED_RECTANGLE, {
-    x, y, w, h, rectRadius: 0.08,
-    fill: { color: opts.fill || COL.surface, transparency: opts.transparency ?? 8 },
-    line: { color: opts.line || COL.line, width: opts.lineWidth || 0.75 },
-    objectName: opts.name,
-  });
+function marker(s, n, x, y, d = 0.3) {
+  s.addShape(pres.shapes.OVAL, { x: x - d / 2, y: y - d / 2, w: d, h: d, fill: { color: C.ink }, line: { color: C.paper, width: 1.25 } });
+  t(s, String(n), { x: x - d / 2, y: y - d / 2, w: d, h: d, fontFace: MONO, fontSize: 11, bold: true, color: C.paper, align: "center", valign: "middle" });
 }
-function img(slide, file, x, y, w, h, o = {}) {
-  slide.addImage({ path: B(file), x, y, w, h, ...o });
-}
-function frame(slide, x, y, w, h) {
-  slide.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { type: "none" }, line: { color: COL.line, width: 0.75 } });
-}
-function marker(slide, n, x, y, d = 0.34) {
-  slide.addShape(pres.shapes.OVAL, { x: x - d / 2, y: y - d / 2, w: d, h: d, fill: { color: COL.cyan }, line: { color: COL.bg, width: 1.5 } });
-  text(slide, String(n), { x: x - d / 2, y: y - d / 2, w: d, h: d, fontSize: 12, bold: true, color: COL.bg, align: "center", valign: "middle" });
-}
-function pill(slide, label, x, y, w, color, filled = false) {
-  slide.addShape(pres.shapes.ROUNDED_RECTANGLE, {
-    x, y, w, h: 0.3, rectRadius: 0.15,
-    fill: filled ? { color } : { color: COL.bg, transparency: 100 },
-    line: { color, width: 1 },
-  });
-  text(slide, label, { x, y, w, h: 0.3, fontSize: 10, bold: true, color: filled ? COL.bg : color, align: "center", valign: "middle", charSpacing: 0.5 });
-}
-async function icon(Comp, color) {
-  const svg = ReactDOMServer.renderToStaticMarkup(React.createElement(Comp, { color: "#" + color, size: 256, strokeWidth: 1.6 }));
-  const png = await sharp(Buffer.from(svg)).png().toBuffer();
-  return "image/png;base64," + png.toString("base64");
-}
-const f1 = (x) => x.toFixed(1).replace("-", "\u2212");
+const cap = (s, str, o) => t(s, str, { fontSize: 10, color: C.muted, ...o });
+const f1 = (x) => x.toFixed(1).replace("-", "−");
 
 (async () => {
   const E = VAL.epsf_cross, G = VAL.gaussian;
   const before = f1(G.peak_abs_sigma), after = f1(E.peak_abs_sigma), dip = f1(G.peak_neg_sigma);
-  const nPairs = TL.pairs.length, nObs = TL.observations.length;
   const waves = TL.observations.map((o) => o.wave_um).filter((v) => v);
-  const wmin = Math.min(...waves).toFixed(2), wmax = Math.max(...waves).toFixed(2);
+  const wmin = Math.round(Math.min(...waves) * 1000), wmax = Math.round(Math.max(...waves) * 1000);
+  const maxGap = Math.round(Math.max(...OBS.coverage_gaps.map((g) => g.days)));
 
   // ===== 1. Title =====
   {
-    const s = pres.addSlide({ masterName: "STM_TITLE" });
-    s.addImage({ path: B("hero_explore.jpg"), x: 0, y: 0, w: W, h: H, altText: "Sky Time Machine Explore view of M31 with SPHEREx footprints" });
-    s.addImage({ path: B("hero_scrim.png"), x: 0, y: 0, w: W, h: H });
-    text(s, "NASA SPHEREX  ·  TIME-DOMAIN EXPLORER", { x: MX + 0.1, y: 1.5, w: 7, h: 0.3, fontSize: 12, bold: true, color: COL.cyan, charSpacing: 1.5 });
-    text(s, "Sky Time Machine", { x: MX + 0.1, y: 1.9, w: 7.5, h: 1.0, fontSize: 54, bold: true, color: "FFFFFF", valign: "middle" });
-    text(s, "A new way to explore how the universe changes over time.", { x: MX + 0.1, y: 3.0, w: 6.3, h: 0.9, fontSize: 22, color: COL.text });
-    text(s,
-      "Pick a position on the sky, see every archived SPHEREx exposure of it, compare two epochs taken at the same wavelength, and inspect what changed, with its uncertainty, quality checks and provenance.",
-      { x: MX + 0.1, y: 4.05, w: 5.6, h: 1.2, fontSize: 14, color: COL.soft, lineSpacingMultiple: 1.15 });
-    text(s, "CREATED BY", { x: MX + 0.1, y: 5.55, w: 3, h: 0.25, fontSize: 10, bold: true, color: COL.muted, charSpacing: 1.5 });
-    text(s, "Yazhiniyan M.S.", { x: MX + 0.1, y: 5.82, w: 5, h: 0.45, fontSize: 20, bold: true, color: "FFFFFF" });
-    text(s, "github.com/yazhiniyanMS/sky-time-machine", { x: MX + 0.1, y: 6.42, w: 6, h: 0.3, fontSize: 12, color: COL.cyan });
-    text(s, "Live app view: M31 with real SPHEREx DR1 detector-1 footprints · background DSS2 colour via IRSA HiPS",
-      { x: W - MX - 8.2, y: 7.02, w: 8.2, h: 0.28, fontSize: 10, color: COL.soft, align: "right" });
-    s.addNotes("Sky Time Machine, built by Yazhiniyan M.S. The background is a real screenshot of the app's Explore view: Andromeda (M31) with the actual SPHEREx DR1 detector-1 footprints that cover it.");
+    const s = pres.addSlide({ masterName: "PAPER" });
+    t(s, "NASA SPHEREx  ·  time-domain exploration", { x: MX, y: 0.9, w: 4.8, h: 0.3, fontSize: 11, color: C.muted });
+    t(s, "Sky Time Machine", { x: MX, y: 1.3, w: 4.9, h: 1.5, fontFace: SERIF, fontSize: 44, color: C.ink });
+    t(s, "Exploring how the sky changes between SPHEREx observations.", { x: MX, y: 2.95, w: 4.5, h: 0.8, fontFace: SERIF, fontSize: 17, italic: true, color: C.muted });
+    t(s, "Pick a position, list every archived SPHEREx exposure of it, compare two epochs taken at the same wavelength, and inspect what changed, with uncertainties and provenance.",
+      { x: MX, y: 3.95, w: 4.4, h: 1.2, fontSize: 13, color: C.ink, lineSpacingMultiple: 1.2 });
+    rule(s, MX, 5.45, 4.4, C.rule);
+    t(s, "Team", { x: MX, y: 5.6, w: 2, h: 0.25, fontSize: 10, color: C.muted });
+    t(s, "Snack Seekers", { x: MX, y: 5.85, w: 4.4, h: 0.45, fontFace: SERIF, fontSize: 22 });
+    t(s, "Yazhiniyan M.S.", { x: MX, y: 6.32, w: 4.4, h: 0.3, fontSize: 13, color: C.ink });
+    t(s, "github.com/yazhiniyanMS/sky-time-machine", { x: MX, y: 6.65, w: 4.6, h: 0.25, fontFace: MONO, fontSize: 10, color: C.muted });
+    const px = 5.55, pw = W - MX - px, ph = pw / 1.6;
+    plate(s, "shot_explore.jpg", px, 0.9, pw, ph, "Explore workspace showing M31 with SPHEREx footprints");
+    cap(s, [{ text: "Fig. 1  ", options: { bold: true, color: C.ink } }, { text: "Explore workspace (production build). M31 with the real SPHEREx DR1 detector-1 footprints returned by NASA/IPAC IRSA; background DSS2 colour via IRSA HiPS." }],
+      { x: px, y: 0.9 + ph + 0.12, w: pw, h: 0.45 });
+    s.addNotes("Sky Time Machine by team Snack Seekers. Figure 1 is a screenshot of the running application: the Explore workspace on Andromeda, with the actual SPHEREx DR1 detector-1 footprints that cover it.");
   }
 
   // ===== 2. Problem =====
   {
-    const s = pres.addSlide({ masterName: "STM_CONTENT" });
-    header(s, "01  ·  The problem", "Comparing the same sky across dates is harder than it looks");
-    const cw = 3.84, gap = 0.31, y0 = 1.75, ch = 4.95;
-    const xs = [MX, MX + cw + gap, MX + 2 * (cw + gap)];
+    const s = pres.addSlide({ masterName: "PAPER" });
+    head(s, "01", "The problem", "Comparing the same sky across dates is harder than it looks");
+    const cw = (CW - 2 * 0.5) / 3, xs = [MX, MX + cw + 0.5, MX + 2 * (cw + 0.5)], y0 = 1.75;
+    [xs[1] - 0.25, xs[2] - 0.25].forEach((x) => vrule(s, x, y0, 4.95));
     const heads = ["Observations are scattered in time", "Each exposure sees a different wavelength", "Naive subtraction invents signals"];
     xs.forEach((x, i) => {
-      card(s, x, y0, cw, ch);
-      text(s, String(i + 1).padStart(2, "0"), { x: x + 0.3, y: y0 + 0.28, w: 0.6, h: 0.3, fontSize: 12, bold: true, color: COL.cyan });
-      text(s, heads[i], { x: x + 0.3, y: y0 + 0.58, w: cw - 0.6, h: 0.7, fontSize: 17, bold: true });
+      t(s, String(i + 1).padStart(2, "0"), { x, y: y0, w: 0.6, h: 0.3, fontFace: MONO, fontSize: 12, color: C.accent });
+      t(s, heads[i], { x, y: y0 + 0.32, w: cw, h: 0.4, fontFace: SERIF, fontSize: 16 });
     });
-    // Shared native-chart styling (axis labels identical on both charts).
-    const vy = y0 + 1.22, vh = 2.0, ty = y0 + 3.32, capY = y0 + ch - 0.42;
-    const axis = (yTitle, xTitle) => ({
-      valAxisLabelColor: COL.muted, catAxisLabelColor: COL.muted, valAxisLabelFontSize: 10, catAxisLabelFontSize: 10,
-      valAxisLabelFontFace: FONT, catAxisLabelFontFace: FONT,
-      showValAxisTitle: true, valAxisTitle: yTitle, valAxisTitleColor: COL.muted, valAxisTitleFontSize: 10, valAxisTitleFontFace: FONT,
-      showCatAxisTitle: true, catAxisTitle: xTitle, catAxisTitleColor: COL.muted, catAxisTitleFontSize: 10, catAxisTitleFontFace: FONT,
-      valGridLine: { color: "1A2433", size: 0.5 }, catGridLine: { style: "none" },
-      valAxisLineShow: false, catAxisLineColor: "2A3647", showLegend: false,
-      catAxisMinVal: 0, catAxisMaxVal: 200, catAxisMajorUnit: 50, catAxisLabelFormatCode: "0",
-      lineSize: 0, lineDataSymbol: "circle", lineDataSymbolSize: 6,
-      plotArea: { fill: { color: COL.surface } }, chartArea: { fill: { color: COL.surface } },
+    const vy = y0 + 0.95, vh = 2.25, ty = y0 + 3.35;
+    const axis = (yTitle) => ({
+      valAxisLabelColor: C.muted, catAxisLabelColor: C.muted, valAxisLabelFontSize: 9, catAxisLabelFontSize: 9,
+      valAxisLabelFontFace: SANS, catAxisLabelFontFace: SANS,
+      showValAxisTitle: true, valAxisTitle: yTitle, valAxisTitleColor: C.muted, valAxisTitleFontSize: 9, valAxisTitleFontFace: SANS,
+      showCatAxisTitle: true, catAxisTitle: "days since 2025-07-09", catAxisTitleColor: C.muted, catAxisTitleFontSize: 9, catAxisTitleFontFace: SANS,
+      valGridLine: { color: C.line, size: 0.5 }, catGridLine: { style: "none" }, valAxisLineShow: false, catAxisLineColor: C.rule,
+      catAxisMinVal: 0, catAxisMaxVal: 200, catAxisMajorUnit: 50, catAxisLabelFormatCode: "0", showLegend: false,
+      lineSize: 0, lineDataSymbol: "circle", lineDataSymbolSize: 5,
+      plotArea: { fill: { color: C.paper } }, chartArea: { fill: { color: C.paper } },
     });
-    const body = (x, str) => text(s, str, { x: x + 0.3, y: ty, w: cw - 0.6, h: 1.05, fontSize: 14, color: COL.soft, lineSpacingMultiple: 1.08 });
-    const cap = (x, str) => text(s, str, { x: x + 0.3, y: capY, w: cw - 0.6, h: 0.25, fontSize: 10, color: COL.muted });
-
-    // 1: native scatter — every M31 exposure midpoint by detector (IRSA SIA2 result served by the app's API)
+    // 1: every M31 exposure midpoint by detector (IRSA SIA2, via the app's API)
     const T0 = Math.min(...OBS.exposures.map((e) => e.t_mid_mjd));
     const pts = [];
     OBS.exposures.forEach((e) => e.products.forEach((p) => pts.push([+(e.t_mid_mjd - T0).toFixed(3), p.detector])));
-    const DET = ["3987E5", "D95926", "199E70", "C98500", "D55181", "0CA30C"];
     s.addChart(pres.charts.SCATTER, [{ name: "days", values: pts.map((p) => p[0]) }].concat(
-      [1, 2, 3, 4, 5, 6].map((d) => ({ name: "D" + d, values: pts.map((p) => (p[1] === d ? d : null)) }))
-    ), { x: xs[0] + 0.15, y: vy, w: cw - 0.3, h: vh, chartColors: DET, ...axis("detector", "days since 2025-07-09"),
-      valAxisMinVal: 0.5, valAxisMaxVal: 6.5, valAxisMajorUnit: 1, valAxisLabelFormatCode: "0" });
-    const maxGap = Math.round(Math.max(...OBS.coverage_gaps.map((g) => g.days)));
-    body(xs[0], `At M31: ${OBS.n_products} images from ${OBS.n_exposures} exposures on six detectors, with a ${maxGap}-day gap in coverage.`);
-    cap(xs[0], "Exposure midpoints, 2025-07-09 to 2026-01-28");
-
-    // 2: native scatter — wavelength at the target for each detector-1 exposure
+      [1, 2, 3, 4, 5, 6].map((d) => ({ name: "D" + d, values: pts.map((p) => (p[1] === d ? d : null)) }))),
+      { x: xs[0] - 0.1, y: vy, w: cw + 0.1, h: vh, chartColors: DET, ...axis("detector"), valAxisMinVal: 0.5, valAxisMaxVal: 6.5, valAxisMajorUnit: 1, valAxisLabelFormatCode: "0" });
+    t(s, `${OBS.n_products} images from ${OBS.n_exposures} exposures on six detectors, with a ${maxGap}-day gap in coverage.`,
+      { x: xs[0], y: ty, w: cw, h: 0.9, fontSize: 13, lineSpacingMultiple: 1.15 });
+    cap(s, "M31 exposure midpoints, 2025-07-09 to 2026-01-28", { x: xs[0], y: ty + 1.25, w: cw, h: 0.25 });
+    // 2: wavelength at the target, detector 1
     const t0 = Math.min(...TL.observations.map((o) => o.t_mid_mjd));
-    const obs = TL.observations.filter((o) => o.wave_um);
+    const ob = TL.observations.filter((o) => o.wave_um);
     s.addChart(pres.charts.SCATTER, [
-      { name: "days", values: obs.map((o) => +(o.t_mid_mjd - t0).toFixed(3)) },
-      { name: "λ", values: obs.map((o) => Math.round(o.wave_um * 1000)) },
-    ], { x: xs[1] + 0.15, y: vy, w: cw - 0.3, h: vh, chartColors: [COL.blue], ...axis("λ at target (nm)", "days since 2025-07-09"),
-      valAxisMinVal: 700, valAxisMaxVal: 1150, valAxisMajorUnit: 100, valAxisLabelFormatCode: "0" });
-    body(xs[1], `Detector 1 saw M31 anywhere from ${Math.round(Math.min(...waves) * 1000)} to ${Math.round(Math.max(...waves) * 1000)} nm. Only ${nPairs} epoch pairs match within half a bandwidth.`);
-    cap(xs[1], `${nObs} detector-1 exposures, from FITS headers`);
-
+      { name: "days", values: ob.map((o) => +(o.t_mid_mjd - t0).toFixed(3)) },
+      { name: "λ", values: ob.map((o) => Math.round(o.wave_um * 1000)) },
+    ], { x: xs[1] - 0.1, y: vy, w: cw + 0.1, h: vh, chartColors: [C.ink], ...axis("λ at target (nm)"), valAxisMinVal: 700, valAxisMaxVal: 1150, valAxisMajorUnit: 100, valAxisLabelFormatCode: "0" });
+    t(s, `Detector 1 saw M31 anywhere from ${wmin} to ${wmax} nm. Only ${TL.pairs.length} epoch pairs match within half a bandwidth.`,
+      { x: xs[1], y: ty, w: cw, h: 0.9, fontSize: 13, lineSpacingMultiple: 1.15 });
+    cap(s, `${TL.observations.length} detector-1 exposures; wavelength from FITS headers`, { x: xs[1], y: ty + 1.25, w: cw, h: 0.25 });
     // 3: the real false dipole
     const side = vh;
-    img(s, "m31_sig_gaussian.png", xs[2] + (cw - side) / 2, vy, side, side);
-    frame(s, xs[2] + (cw - side) / 2, vy, side, side);
-    body(xs[2], `Mismatched image shapes left a +${before}σ / ${dip}σ dipole on a bright source: an artifact, not a change.`);
-    cap(xs[2], "Significance map, previous PSF step (ringed)");
-    s.addNotes("Three real obstacles, all measured at M31: scattered epochs, a different wavelength in every exposure because of SPHEREx's linear variable filters, and subtraction artifacts from mismatched PSFs.");
+    plate(s, "m31_sig_gaussian.png", xs[2], vy, side, side, "Significance map with a false dipole");
+    t(s, `+${before}σ\n${dip}σ`, { x: xs[2] + side + 0.2, y: vy + 0.7, w: cw - side - 0.2, h: 0.7, fontFace: MONO, fontSize: 13, color: C.ink });
+    cap(s, "adjacent peaks in the ringed pair", { x: xs[2] + side + 0.2, y: vy + 1.42, w: cw - side - 0.2, h: 0.5 });
+    t(s, "Mismatched image shapes left a dipole on a bright source in M31: an artifact that looks like a change.",
+      { x: xs[2], y: ty, w: cw, h: 0.9, fontSize: 13, lineSpacingMultiple: 1.15 });
+    cap(s, "Significance map, previous PSF step", { x: xs[2], y: ty + 1.25, w: cw, h: 0.25 });
+    s.addNotes("Three measured obstacles at M31: scattered epochs, a different wavelength in every exposure (linear variable filters), and subtraction artifacts from mismatched PSFs.");
   }
 
-  // ===== 3. Solution =====
+  // ===== 3. Workflow =====
   {
-    const s = pres.addSlide({ masterName: "STM_CONTENT" });
-    header(s, "02  ·  The solution", "One interface from sky position to inspected change");
+    const s = pres.addSlide({ masterName: "PAPER" });
+    head(s, "02", "The solution", "From a sky position to an inspected change");
     const steps = [
-      [FiCrosshair, "Select a sky region", "Search a name or coordinates on an interactive sky map showing real SPHEREx footprints."],
-      [FiDatabase, "Retrieve observations", "Query the IRSA archive and read each exposure's wavelength at the target from its FITS header."],
-      [FiLayers, "Compare epochs", "Pair exposures from the same detector at matching wavelength. Blink, side by side, or subtract."],
-      [FiSearch, "Inspect differences", "Ranked candidates with σ maps, artifact checks, an explanation and a permanent link."],
+      ["thumb_explore.jpg", "Select a sky region", "Name or coordinates; real SPHEREx footprints on the sky map."],
+      ["thumb_timeline.jpg", "Retrieve observations", "Every exposure from IRSA, with the wavelength seen at the target."],
+      ["thumb_compare.jpg", "Compare epochs", "Same detector, same wavelength: blink, side by side, difference."],
+      ["thumb_discovery.jpg", "Inspect differences", "Ranked candidates with σ, artifact checks and provenance."],
     ];
-    const n = steps.length, colW = 2.7, gap = (W - 2 * MX - n * colW) / (n - 1), cy = 2.35, d = 1.15;
-    for (let i = 0; i < n; i++) {
-      const x = MX + i * (colW + gap), cx = x + colW / 2;
-      s.addShape(pres.shapes.OVAL, { x: cx - d / 2, y: cy, w: d, h: d, fill: { color: COL.surface2 }, line: { color: COL.cyan, width: 1.25 } });
-      s.addImage({ data: await icon(steps[i][0], COL.cyan), x: cx - 0.28, y: cy + d / 2 - 0.28, w: 0.56, h: 0.56 });
-      if (i < n - 1) {
-        s.addShape(pres.shapes.LINE, { x: cx + d / 2 + 0.15, y: cy + d / 2, w: colW + gap - d - 0.3, h: 0, line: { color: COL.cyan, width: 1.25, endArrowType: "triangle", transparency: 30 } });
-      }
-      text(s, String(i + 1).padStart(2, "0"), { x, y: cy + d + 0.3, w: colW, h: 0.3, fontSize: 12, bold: true, color: COL.cyan, align: "center" });
-      text(s, steps[i][1], { x, y: cy + d + 0.6, w: colW, h: 0.4, fontSize: 18, bold: true, align: "center" });
-      text(s, steps[i][2], { x: x + 0.05, y: cy + d + 1.05, w: colW - 0.1, h: 1.1, fontSize: 14, color: COL.soft, align: "center", lineSpacingMultiple: 1.1 });
-    }
-    const by = 5.95, bh = 0.8;
-    card(s, MX, by, W - 2 * MX, bh, { fill: COL.surface2 });
-    const facts = [
-      ["Live archive data", "NASA/IPAC IRSA SPHEREx DR1, nothing simulated"],
-      ["Like with like", "same detector, |Δλ| ≤ ½ bandwidth"],
-      ["Honest output", "every layer labelled original or derived, with σ"],
-    ];
-    const fw = (W - 2 * MX) / 3;
-    facts.forEach(([h, t], i) => {
-      text(s, [{ text: h + "  ", options: { bold: true, color: COL.text } }, { text: t, options: { color: COL.soft } }],
-        { x: MX + 0.3 + i * fw, y: by, w: fw - 0.4, h: bh, fontSize: 13, valign: "middle" });
+    const gap = 0.35, tw = (CW - 3 * gap) / 4, th = tw / 1.5, y0 = 1.85;
+    steps.forEach(([f, h, d], i) => {
+      const x = MX + i * (tw + gap);
+      t(s, String(i + 1), { x, y: y0, w: 0.3, h: 0.3, fontFace: MONO, fontSize: 12, color: C.accent });
+      t(s, h, { x: x + 0.3, y: y0, w: tw - 0.3, h: 0.3, fontFace: SERIF, fontSize: 15 });
+      plate(s, f, x, y0 + 0.45, tw, th, h);
+      t(s, d, { x, y: y0 + 0.6 + th, w: tw, h: 0.75, fontSize: 12, color: C.ink, lineSpacingMultiple: 1.15 });
+      if (i < 3) t(s, "→", { x: x + tw + 0.02, y: y0 + 0.45 + th / 2 - 0.2, w: gap - 0.04, h: 0.4, fontSize: 16, color: C.muted, align: "center", valign: "middle" });
     });
-    s.addNotes("The workflow mirrors the app's navigation: Explore, Timeline, Compare and the candidate pages.");
+    const by = 5.75;
+    rule(s, MX, by, CW);
+    const p3 = [["Live archive data", "NASA/IPAC IRSA SPHEREx DR1; nothing simulated."], ["Like with like", "Same detector and |Δλ| ≤ ½ bandwidth before subtracting."], ["Honest output", "Every layer is labelled original or derived, with σ."]];
+    const pw = CW / 3;
+    p3.forEach(([h, d], i) => {
+      t(s, h, { x: MX + i * pw, y: by + 0.18, w: pw - 0.3, h: 0.3, fontSize: 12, bold: true });
+      t(s, d, { x: MX + i * pw, y: by + 0.48, w: pw - 0.3, h: 0.5, fontSize: 12, color: C.muted });
+    });
+    s.addNotes("Each thumbnail is the real page for that step in the production build: Explore, Timeline, Compare and the candidate page.");
   }
 
-  // ===== 4. Live product =====
+  // ===== 4. Comparison workspace =====
   {
-    const s = pres.addSlide({ masterName: "STM_CONTENT" });
-    header(s, "03  ·  Live product demonstration", "Real SPHEREx data, end to end, in the running app");
-    const y0 = 1.62;
-    // Compare page (main)
-    const cw = 7.95, chh = cw * 1680 / 3200;
-    img(s, "demo_compare.jpg", MX, y0, cw, chh, { altText: "Compare page, M31 epochs 2025-07-11 and 2026-01-04" });
-    frame(s, MX, y0, cw, chh);
-    // Right column: explore + timeline
-    const rx = MX + cw + 0.3, rw = W - MX - rx;
-    const eh = rw * 1410 / 2400;
-    img(s, "demo_explore.jpg", rx, y0, rw, eh); frame(s, rx, y0, rw, eh);
-    const th = rw * 998 / 2400;
-    img(s, "demo_timeline.jpg", rx, y0 + eh + 0.2, rw, th); frame(s, rx, y0 + eh + 0.2, rw, th);
-    // markers (positions as fractions of each screenshot)
-    marker(s, 1, rx + rw * 0.42, y0 + eh * 0.5);
-    marker(s, 2, rx + rw * 0.17, y0 + eh + 0.2 + th * 0.33);
-    marker(s, 3, MX + cw * 0.195, y0 + chh * 0.152);
-    marker(s, 4, MX + cw * 0.568, y0 + chh * 0.152);
-    marker(s, 5, MX + cw * 0.03, y0 + chh * 0.93);
-    marker(s, 6, MX + cw * 0.762, y0 + chh * 0.355);
+    const s = pres.addSlide({ masterName: "PAPER" });
+    head(s, "03", "Live product", "The comparison workspace, on real SPHEREx data");
+    const iw = 8.0, ih = iw / 1.6, ix = MX, iy = 1.55;
+    plate(s, "shot_compare.jpg", ix, iy, iw, ih, "Compare page in difference mode, M31 epochs 2025-07-11 and 2026-01-04");
+    // Markers sit on empty space; 2 and 6 go in the left margin, level with their rows.
+    const pts = [[0.49, 0.1], [-0.03, 0.17], [0.11, 0.38], [0.475, 0.38], [0.955, 0.355], [-0.03, 0.893]];
+    pts.forEach(([fx, fy], i) => marker(s, i + 1, ix + iw * fx, iy + ih * fy));
+    const nx = ix + iw + 0.5, nw = W - MX - nx;
     const notes = [
-      ["Explore", "M31 with real detector-1 footprints"],
-      ["Timeline", "116 exposure midpoints, D1–D6"],
-      ["Epochs A, B", "archive pixels 176.9 days apart"],
-      ["Difference, σ", "derived maps with masks"],
-      ["Ranked candidate", "tier, σ, flux, position error"],
-      ["Quality checks", "registration, λ, coverage"],
+      ["Epoch metadata", "times, 176.9 d baseline, λ A/B, 0.002 px residual"],
+      ["Toolbar", "blink, side by side, difference; stretch and range"],
+      ["Original pixels", "archive A and B on one grid, shared stretch"],
+      ["Derived maps", "B − A and (B − A)/σ; masked pixels hatched"],
+      ["Quality checks", "registration, wavelength match, coverage"],
+      ["Ranked candidate", "tier, peak σ, flux and position error"],
     ];
-    const ly = y0 + chh + 0.28, lw = (W - 2 * MX) / 3;
-    notes.forEach(([h, t], i) => {
-      const col = i % 3, row = Math.floor(i / 3);
-      const x = MX + col * lw, y = ly + row * 0.42;
-      marker(s, i + 1, x + 0.17, y + 0.15, 0.3);
-      text(s, [{ text: h + "  ", options: { bold: true, color: COL.text } }, { text: t, options: { color: COL.soft } }],
-        { x: x + 0.45, y, w: lw - 0.5, h: 0.3, fontSize: 12, valign: "middle" });
+    notes.forEach(([h, d], i) => {
+      const y = iy + i * 0.86;
+      t(s, String(i + 1), { x: nx, y, w: 0.3, h: 0.3, fontFace: MONO, fontSize: 12, bold: true, color: C.ink });
+      t(s, h, { x: nx + 0.35, y, w: nw - 0.35, h: 0.3, fontSize: 12, bold: true });
+      t(s, d, { x: nx + 0.35, y: y + 0.28, w: nw - 0.35, h: 0.5, fontSize: 11, color: C.muted, lineSpacingMultiple: 1.1 });
     });
-    s.addNotes("All three are full-resolution captures of the running app (Next.js frontend + FastAPI backend) against live IRSA data. The Compare page re-ran the current pipeline (stm-pipeline-0.2.0, EPSF matching) on the M31 detector-1 pair 2025-07-11 vs 2026-01-04.");
+    cap(s, [{ text: "Fig. 2  ", options: { bold: true, color: C.ink } }, { text: "Compare page, difference mode (pipeline 0.2.0, EPSF matching): M31, detector 1, 2025-07-11 vs 2026-01-04." }],
+      { x: ix, y: iy + ih + 0.1, w: iw, h: 0.3 });
+    s.addNotes("Full-resolution capture of the running production build against live IRSA data. The graphite surface is used for image work; reading pages use paper.");
   }
 
   // ===== 5. Science and technology =====
   {
-    const s = pres.addSlide({ masterName: "STM_CONTENT" });
-    header(s, "04  ·  The science and technology", "Like with like: wavelength, alignment and image shape");
+    const s = pres.addSlide({ masterName: "PAPER" });
+    head(s, "04", "Science and technology", "Comparing like with like: wavelength, alignment, image shape");
+    const y0 = 1.7;
+    const c1 = 3.0, c2x = MX + c1 + 0.4, c2 = 4.55, c3x = c2x + c2 + 0.4, c3 = W - MX - c3x;
     // SPHEREx facts
-    const facts = [["102", "spectral channels"], ["0.75–5.0 µm", "near-infrared coverage"], ["6", "detectors with linear variable filters"], ["All sky", "mapped about every six months"]];
-    const fw = (W - 2 * MX) / 4;
+    t(s, "NASA SPHEREx", { x: MX, y: y0, w: c1, h: 0.3, fontFace: SERIF, fontSize: 15 });
+    const facts = [["102", "spectral channels"], ["0.75–5.0 µm", "near-infrared range"], ["6", "detectors, linear variable filters"], ["≈ 6 months", "between all-sky passes"]];
     facts.forEach(([v, l], i) => {
-      text(s, v, { x: MX + i * fw, y: 1.55, w: fw - 0.2, h: 0.55, fontSize: 28, bold: true, color: COL.cyan });
-      text(s, l, { x: MX + i * fw, y: 2.1, w: fw - 0.2, h: 0.3, fontSize: 12, color: COL.soft });
+      const y = y0 + 0.5 + i * 0.95;
+      rule(s, MX, y, c1, C.line);
+      t(s, v, { x: MX, y: y + 0.1, w: c1, h: 0.45, fontFace: SERIF, fontSize: 24 });
+      t(s, l, { x: MX, y: y + 0.55, w: c1, h: 0.3, fontSize: 11, color: C.muted });
     });
-    // Pipeline chain
+    vrule(s, c2x - 0.2, y0, 4.85);
+    // Pipeline as a typographic list
+    t(s, "Processing pipeline", { x: c2x, y: y0, w: c2, h: 0.3, fontFace: SERIF, fontSize: 15 });
     const steps = [
-      ["SPHEREx L2", "image, flags, variance, zodi, EPSF"],
-      ["Validate & mask", "WCS, units, 17 archive flags"],
-      ["Register", "common TAN grid, residual check"],
-      ["Match wavelength", "|Δλ| ≤ ½ bandwidth per pixel"],
-      ["EPSF cross-convolution", "A⊗PSF_B and B⊗PSF_A"],
-      ["Difference + σ", "propagated, then rescaled"],
-      ["Detect & rank", "5σ, 7 artifact checks, tiers"],
+      ["Archive Level 2 image", "IMAGE, FLAGS, VARIANCE, ZODI, EPSF, WCS-WAVE"],
+      ["Validate and mask", "WCS, units, 17 archive quality flags"],
+      ["Register", "common TAN grid; reject residual > 0.35 px"],
+      ["Match wavelength", "mask pixels with |Δλ| > ½ bandwidth"],
+      ["EPSF cross-convolution", "A ⊗ PSF_B and B ⊗ PSF_A: one shared PSF"],
+      ["Difference and uncertainty", "σ propagated from VARIANCE, then rescaled"],
+      ["Detect, check, rank", "5σ segments, 7 artifact checks, tiers A/B/R"],
     ];
-    const n = steps.length, py = 2.7, ph = 1.2, pg = 0.2, pw = (W - 2 * MX - (n - 1) * pg) / n;
-    steps.forEach(([h, t], i) => {
-      const x = MX + i * (pw + pg), hl = i === 4;
-      card(s, x, py, pw, ph, { fill: hl ? "0E2A3A" : COL.surface, line: hl ? COL.cyan : COL.line, lineWidth: hl ? 1.5 : 0.75, transparency: 0 });
-      text(s, h, { x: x + 0.1, y: py + 0.1, w: pw - 0.2, h: 0.45, fontSize: 12, bold: true, color: hl ? COL.cyan : COL.text, align: "center", valign: "middle" });
-      text(s, t, { x: x + 0.1, y: py + 0.6, w: pw - 0.2, h: 0.5, fontSize: 10, color: COL.soft, align: "center" });
-      if (i < n - 1) s.addShape(pres.shapes.LINE, { x: x + pw + 0.02, y: py + ph / 2, w: pg - 0.04, h: 0, line: { color: COL.muted, width: 1, endArrowType: "triangle" } });
+    steps.forEach(([h, d], i) => {
+      const y = y0 + 0.5 + i * 0.62, hl = i === 4;
+      rule(s, c2x, y, c2, C.line);
+      t(s, String(i + 1), { x: c2x, y: y + 0.08, w: 0.3, h: 0.25, fontFace: MONO, fontSize: 11, color: hl ? C.accent : C.muted, bold: hl });
+      t(s, h, { x: c2x + 0.35, y: y + 0.07, w: c2 - 0.35, h: 0.25, fontSize: 12, bold: true, color: hl ? C.accent : C.ink });
+      t(s, d, { x: c2x + 0.35, y: y + 0.32, w: c2 - 0.35, h: 0.25, fontSize: 10.5, color: C.muted });
     });
-    // Why PSF matching matters (real kernels from the M31 pair)
-    const by = 4.2, bh = 2.55;
-    card(s, MX, by, 7.0, bh);
-    text(s, "Why PSF matching matters", { x: MX + 0.3, y: by + 0.22, w: 6.4, h: 0.35, fontSize: 16, bold: true });
-    const ks = 1.0, ky = by + 0.75, kx0 = MX + 0.3;
-    const kern = [["psf_a.png", "Epoch A PSF"], ["psf_b.png", "Epoch B PSF"], ["psf_common.png", "Shared PSF"]];
-    kern.forEach(([f, l], i) => {
-      const x = kx0 + i * 1.3;
-      img(s, f, x, ky, ks, ks); frame(s, x, ky, ks, ks);
-      text(s, l, { x: x - 0.1, y: ky + ks + 0.08, w: ks + 0.2, h: 0.25, fontSize: 10, color: COL.muted, align: "center" });
+    vrule(s, c3x - 0.2, y0, 4.85);
+    // PSF figure + verified results
+    t(s, "Why PSF matching matters", { x: c3x, y: y0, w: c3, h: 0.3, fontFace: SERIF, fontSize: 15 });
+    const ks = 0.95, ky = y0 + 0.5;
+    [["psf_a.png", "epoch A"], ["psf_b.png", "epoch B"], ["psf_common.png", "shared"]].forEach(([f, l], i) => {
+      const x = c3x + i * (ks + 0.35);
+      plate(s, f, x, ky, ks, ks, `EPSF kernel, ${l}`);
+      cap(s, l, { x, y: ky + ks + 0.06, w: ks, h: 0.22, align: "center" });
     });
-    text(s, "⊗", { x: kx0 + ks + 0.02, y: ky + 0.3, w: 0.26, h: 0.4, fontSize: 16, color: COL.soft, align: "center" });
-    text(s, "=", { x: kx0 + 1.3 + ks + 0.02, y: ky + 0.3, w: 0.26, h: 0.4, fontSize: 16, color: COL.soft, align: "center" });
-    text(s, "Two epochs see a star through slightly different PSFs, so direct subtraction leaves dipoles that mimic real change. Convolving each epoch with the other's empirical PSF gives both one shape, without deconvolution.",
-      { x: MX + 4.15, y: by + 0.72, w: 2.6, h: 1.7, fontSize: 12, color: COL.soft, lineSpacingMultiple: 1.05 });
-    // Verified results
-    const vx = MX + 7.3, vw = W - MX - vx;
-    card(s, vx, by, vw, bh);
-    text(s, "Verified in the test suite", { x: vx + 0.3, y: by + 0.22, w: vw - 0.6, h: 0.35, fontSize: 16, bold: true });
-    const rows = [
-      ["> 20σ → < 6σ", "synthetic stars, orthogonal PSF elongations"],
-      ["13.8σ → 3.7σ", "synthetic, epoch rotated 35°, S/N ≤ 60"],
-      ["χ² 415k vs 453k", "EPSF orientation confirmed on 20 real stars"],
-      [`${before}σ → ${after}σ`, "real M31 pair (next slide)"],
-    ];
-    rows.forEach(([v, l], i) => {
-      const y = by + 0.72 + i * 0.44;
-      text(s, v, { x: vx + 0.3, y, w: 1.75, h: 0.36, fontSize: 14, bold: true, color: COL.cyan, valign: "middle" });
-      text(s, l, { x: vx + 2.1, y, w: vw - 2.35, h: 0.36, fontSize: 11, color: COL.soft, valign: "middle" });
+    t(s, "⊗", { x: c3x + ks + 0.04, y: ky + 0.3, w: 0.27, h: 0.35, fontSize: 14, color: C.muted, align: "center" });
+    t(s, "=", { x: c3x + 2 * ks + 0.39, y: ky + 0.3, w: 0.27, h: 0.35, fontSize: 14, color: C.muted, align: "center" });
+    t(s, "Two epochs see a star through slightly different PSFs; subtracting them directly leaves dipoles that mimic change.",
+      { x: c3x, y: ky + ks + 0.4, w: c3, h: 0.75, fontSize: 11.5, lineSpacingMultiple: 1.15 });
+    const vr = [["> 20σ → < 6σ", "synthetic, orthogonal elongations"], ["13.8σ → 3.7σ", "synthetic, epoch rotated 35°"], ["χ² 415k vs 453k", "orientation, 20 real stars"], [`${before}σ → ${after}σ`, "real M31 pair (next slide)"]];
+    const vy = ky + ks + 1.25;
+    t(s, "Verified in the test suite", { x: c3x, y: vy, w: c3, h: 0.25, fontSize: 11, bold: true });
+    vr.forEach(([v, l], i) => {
+      const y = vy + 0.32 + i * 0.36;
+      rule(s, c3x, y, c3, C.line);
+      t(s, v, { x: c3x, y: y + 0.06, w: 1.6, h: 0.26, fontFace: MONO, fontSize: 11, bold: true });
+      t(s, l, { x: c3x + 1.65, y: y + 0.07, w: c3 - 1.65, h: 0.26, fontSize: 10.5, color: C.muted });
     });
-    s.addNotes("Kernels shown are the actual EPSF kernels evaluated on the comparison grid for the two M31 epochs (rotations 25.7° and −148.4°). Test numbers are from docs/SCIENTIFIC_METHODOLOGY.md.");
+    s.addNotes("Kernels are the actual EPSF kernels for the two M31 epochs on the comparison grid. Test numbers are from docs/SCIENTIFIC_METHODOLOGY.md.");
   }
 
   // ===== 6. Results =====
   {
-    const s = pres.addSlide({ masterName: "STM_CONTENT" });
-    header(s, "05  ·  Demonstration results", "M31 validation: the false dipole disappears");
-    pill(s, "VALIDATION EXAMPLE  ·  NOT A CONFIRMED DISCOVERY", W - MX - 4.9, 0.4, 4.9, COL.caution);
-    const sz = 2.3, y0 = 1.62, g1 = 0.22, g2 = 0.6;
-    const total = 4 * sz + 2 * g1 + g2, x0 = (W - total) / 2;
+    const s = pres.addSlide({ masterName: "PAPER" });
+    head(s, "05", "Demonstration result", "M31 validation: the false dipole disappears");
+    s.addShape(pres.shapes.RECTANGLE, { x: W - MX - 5.1, y: 0.38, w: 5.1, h: 0.32, fill: { type: "none" }, line: { color: C.amber, width: 1 } });
+    t(s, "PIPELINE VALIDATION EXAMPLE  ·  NOT A CONFIRMED DISCOVERY", { x: W - MX - 5.1, y: 0.38, w: 5.1, h: 0.32, fontSize: 10, bold: true, color: C.amber, align: "center", valign: "middle" });
+    const sz = 2.42, g1 = 0.2, g2 = 0.55, y0 = 1.75;
+    const total = 4 * sz + 2 * g1 + g2, x0 = MX + (CW - total) / 2;
     const xs = [x0, x0 + sz + g1, x0 + 2 * sz + g1 + g2, x0 + 3 * sz + 2 * g1 + g2];
     const panels = [
-      ["m31_epoch_a.png", "Epoch A", "2025-07-11 22:22 UTC · λ 1.075 µm"],
-      ["m31_epoch_b.png", "Epoch B", "2026-01-04 20:50 UTC · λ 1.080 µm"],
-      ["m31_sig_gaussian.png", "Before: previous PSF step", `peak ${before}σ · ${dip}σ dipole`],
-      ["m31_sig_epsf.png", "After: EPSF matching", `peak ${after}σ · no dipole`],
+      ["m31_epoch_a.png", "(a) Epoch A", "2025-07-11 22:22 · 1.075 µm"],
+      ["m31_epoch_b.png", "(b) Epoch B", "2026-01-04 20:50 · 1.080 µm"],
+      ["m31_sig_gaussian.png", "(c) Previous PSF step", `peak ${before}σ, ${dip}σ dipole`],
+      ["m31_sig_epsf.png", "(d) EPSF matching", `peak ${after}σ, no dipole`],
     ];
-    panels.forEach(([f, h, t], i) => {
-      text(s, h, { x: xs[i], y: y0 - 0.02, w: sz, h: 0.3, fontSize: 13, bold: true, color: i === 3 ? COL.cyan : COL.text });
-      img(s, f, xs[i], y0 + 0.33, sz, sz); frame(s, xs[i], y0 + 0.33, sz, sz);
-      text(s, t, { x: xs[i], y: y0 + 0.4 + sz, w: sz, h: 0.25, fontSize: 10, color: COL.soft });
+    panels.forEach(([f, h, d], i) => {
+      t(s, h, { x: xs[i], y: y0, w: sz, h: 0.28, fontSize: 12, bold: true, color: i === 3 ? C.accent : C.ink });
+      plate(s, f, xs[i], y0 + 0.32, sz, sz, h);
+      t(s, d, { x: xs[i], y: y0 + 0.4 + sz, w: sz, h: 0.25, fontFace: MONO, fontSize: 9.5, color: C.muted });
     });
-    // arrow between before/after
-    s.addShape(pres.shapes.LINE, { x: xs[2] + sz + 0.03, y: y0 + 0.33 + sz / 2, w: g1 - 0.06, h: 0, line: { color: COL.cyan, width: 1.5, endArrowType: "triangle" } });
-    // colour bar under the significance maps
-    const cbx = xs[2], cbw = xs[3] + sz - xs[2], cby = y0 + 0.78 + sz;
-    img(s, "sig_colorbar.png", cbx, cby, cbw, 0.12);
-    text(s, "−10σ  fading", { x: cbx, y: cby + 0.15, w: 2, h: 0.22, fontSize: 10, color: COL.muted });
-    text(s, "0", { x: cbx + cbw / 2 - 0.2, y: cby + 0.15, w: 0.4, h: 0.22, fontSize: 10, color: COL.muted, align: "center" });
-    text(s, "brightening  +10σ", { x: cbx + cbw - 2, y: cby + 0.15, w: 2, h: 0.22, fontSize: 10, color: COL.muted, align: "right" });
-    text(s, "Archive pixels on the common grid, shared stretch · 0.10° field, detector 1", { x: xs[0], y: cby, w: 2 * sz + g1, h: 0.25, fontSize: 10, color: COL.muted });
-    // stats
-    const sy = 5.22, sw = (W - 2 * MX - 0.6) / 3;
-    const stats = [
-      [`${before}σ → ${after}σ`, "peak |significance| of the difference image"],
-      [`${dip}σ → gone`, "dipole subtraction residual removed"],
-      ["0.002 px", "registration residual · 176.9-day baseline"],
-    ];
-    stats.forEach(([v, l], i) => {
-      const x = MX + i * (sw + 0.3);
-      card(s, x, sy, sw, 1.0, { fill: COL.surface2 });
-      text(s, v, { x: x + 0.25, y: sy + 0.1, w: sw - 0.5, h: 0.5, fontSize: 24, bold: true, color: COL.cyan, valign: "middle" });
-      text(s, l, { x: x + 0.25, y: sy + 0.6, w: sw - 0.5, h: 0.3, fontSize: 12, color: COL.soft });
+    const cby = y0 + 0.82 + sz, cbx = xs[2], cbw = xs[3] + sz - xs[2];
+    s.addImage({ path: B("sig_colorbar.png"), x: cbx, y: cby, w: cbw, h: 0.1 });
+    cap(s, "−10σ fading", { x: cbx, y: cby + 0.13, w: 2, h: 0.22, fontSize: 9 });
+    cap(s, "0", { x: cbx + cbw / 2 - 0.2, y: cby + 0.13, w: 0.4, h: 0.22, fontSize: 9, align: "center" });
+    cap(s, "brightening +10σ", { x: cbx + cbw - 2, y: cby + 0.13, w: 2, h: 0.22, fontSize: 9, align: "right" });
+    cap(s, "(a, b) archive pixels on the common grid, shared stretch; times UTC, λ at the target; 0.10° field, detector 1", { x: xs[0], y: cby, w: 2 * sz + g1, h: 0.4, fontSize: 9 });
+    // the numbers
+    const sy = 5.48, sw = CW / 3;
+    rule(s, MX, sy, CW);
+    [[`${before}σ → ${after}σ`, "peak |significance| of the difference image"], [`${dip}σ → none`, "dipole subtraction residual"], ["0.002 px", "registration residual, 176.9-day baseline"]].forEach(([v, l], i) => {
+      const x = MX + i * sw;
+      if (i) vrule(s, x - 0.15, sy + 0.12, 0.8);
+      t(s, v, { x, y: sy + 0.1, w: sw - 0.3, h: 0.5, fontFace: SERIF, fontSize: 26 });
+      t(s, l, { x, y: sy + 0.62, w: sw - 0.3, h: 0.3, fontSize: 11, color: C.muted });
     });
-    text(s, "Same archive inputs; only the PSF step differs. The previous step matched header FWHMs with a Gaussian and was skipped here, as both report 7.53″. The remaining \u22127.4σ detection (ST-2026-000003) is tier B with three warnings and is unverified. Cost: resolution 7.5″ → 14.1″.",
-      { x: MX, y: 6.35, w: W - 2 * MX, h: 0.5, fontSize: 11, color: COL.muted, lineSpacingMultiple: 1.05 });
-    s.addNotes("Reproduce with presentation/scripts/m31_psf_validation.py: same cached IRSA cutouts, psf_method 'gaussian' vs 'epsf_cross'. Gaussian run: peak +14.14σ, minimum −10.95σ (subtraction residual). EPSF run: peak |S| 7.43σ, one tier-B 'variable candidate' at −7.43σ with edge_distance, quality_flags_nearby and extent warnings.");
+    t(s, "Same archive inputs; only the PSF step differs. The previous step matched header FWHMs with a Gaussian and was skipped here (both 7.53″). The remaining −7.4σ detection (ST-2026-000003) is tier B with three warnings and unverified. Cost: resolution 7.5″ → 14.1″.",
+      { x: MX, y: 6.5, w: CW, h: 0.45, fontSize: 10, color: C.muted, lineSpacingMultiple: 1.1 });
+    s.addNotes("Reproduce with presentation/scripts/m31_psf_validation.py (cached IRSA cutouts; psf_method gaussian vs epsf_cross). Gaussian run: +14.14σ peak and −10.95σ subtraction residual. EPSF run: |S| 7.43σ peak.");
   }
 
-  // ===== 7. Future + closing =====
+  // ===== 7. Status and direction =====
   {
-    const s = pres.addSlide({ masterName: "STM_CONTENT" });
-    header(s, "06  ·  Future direction", "From comparison tool to research platform");
-    const cols = [
-      { h: "Implemented", tag: "MERGED", color: COL.cyan, filled: true, items: [
-        "Sky explorer, observation timeline, epoch comparison",
-        "EPSF-based PSF matching with uncertainty maps",
-        "Spectral explorer across the 102 channels",
-        "Multi-epoch light curves per channel",
-        "SIMBAD and Gaia DR3 cross-matching",
-        "Candidate pages, investigations, watchlists" ] },
-      { h: "In development", tag: "LIMITED", color: COL.caution, filled: false, items: [
-        "Coverage heatmaps: built, not yet run on a real field (archive timeouts)",
-        "Claude-powered assistant: implemented, not yet exercised",
-        "Collaboration: shareable investigations and notes, no accounts yet" ] },
-      { h: "Planned", tag: "ROADMAP", color: COL.muted, filled: false, items: [
-        "Accounts and team workspaces for collaborative research",
-        "Injection campaign to measure completeness and false positives",
-        "Ephemeris cross-checks for moving objects",
-        "More surveys through the adapter interface" ] },
+    const s = pres.addSlide({ masterName: "PAPER" });
+    head(s, "06", "Status and direction", "What is built, what is limited, what comes next");
+    const tx = MX, tw = 7.65, cw = tw / 3, y0 = 1.65;
+    const data = [
+      ["Implemented, merged", C.olive, ["Explore, timeline and epoch comparison", "EPSF-based PSF matching with σ maps", "Spectral explorer across 102 channels", "Multi-epoch light curves per channel", "SIMBAD and Gaia DR3 cross-matching", "Candidate pages, investigations, watchlists"]],
+      ["Built, with limits", C.amber, ["Coverage maps: not yet run on a real field (archive timeouts)", "Claude assistant: implemented, not yet exercised", "Sharing: links and notes, no user accounts"]],
+      ["Planned", C.muted, ["Accounts and team workspaces", "Injection campaign for completeness and false positives", "Ephemeris checks for moving objects", "More surveys through the adapter interface"]],
     ];
-    const cy = 1.6, chh = 3.95, gap = 0.3, cw = (W - 2 * MX - 2 * gap) / 3;
-    cols.forEach((c, i) => {
-      const x = MX + i * (cw + gap);
-      card(s, x, cy, cw, chh);
-      text(s, c.h, { x: x + 0.3, y: cy + 0.25, w: cw - 1.9, h: 0.4, fontSize: 18, bold: true, valign: "middle" });
-      pill(s, c.tag, x + cw - 1.45, cy + 0.3, 1.15, c.color, c.filled);
-      const runs = c.items.map((t, k) => ({ text: t, options: { bullet: { indent: 14 }, breakLine: k < c.items.length - 1, paraSpaceAfter: 6 } }));
-      text(s, runs, { x: x + 0.3, y: cy + 0.85, w: cw - 0.55, h: chh - 1.0, fontSize: 13, color: COL.soft, lineSpacingMultiple: 1.05 });
+    data.forEach(([h, col, items], i) => {
+      const x = tx + i * cw;
+      s.addShape(pres.shapes.RECTANGLE, { x, y: y0 + 0.08, w: 0.12, h: 0.12, fill: { color: col }, line: { color: col, width: 0 } });
+      t(s, h, { x: x + 0.22, y: y0, w: cw - 0.3, h: 0.3, fontSize: 12, bold: true });
+      rule(s, x, y0 + 0.42, cw - 0.2, C.ink, 1);
+      items.forEach((it, k) => {
+        const y = y0 + 0.52 + k * 0.56;
+        t(s, it, { x, y, w: cw - 0.3, h: 0.5, fontSize: 11.5, lineSpacingMultiple: 1.1 });
+        rule(s, x, y + 0.5, cw - 0.2, C.line);
+      });
     });
-    text(s, "See every observation. Compare like with like. Trust what changed.",
-      { x: MX, y: 5.85, w: W - 2 * MX, h: 0.5, fontSize: 24, bold: true, color: "FFFFFF", valign: "middle" });
-    text(s, [{ text: "github.com/yazhiniyanMS/sky-time-machine" }, { text: "     ·     Yazhiniyan M.S.", options: { color: COL.soft } }],
-      { x: MX, y: 6.4, w: W - 2 * MX, h: 0.35, fontSize: 14, color: COL.cyan, valign: "middle" });
-    s.addNotes("Implemented items are merged on main (PRs #1–#3). 'In development' items exist in code but have the stated limits (docs/LIMITATIONS.md). 'Planned' items are not implemented.");
+    const fx = tx + tw + 0.3, fw = W - MX - fx, fh = fw * 824 / 2000;
+    plate(s, "shot_spectra.jpg", fx, y0, fw, fh, "Spectral explorer page");
+    cap(s, [{ text: "Fig. 3  ", options: { bold: true, color: C.ink } }, { text: "Spectral explorer: IRSA DR1 coadded spectrum (102 channels) and per-exposure photometry at an M31 disk position." }],
+      { x: fx, y: y0 + fh + 0.1, w: fw, h: 0.7 });
+    rule(s, MX, 5.55, CW, C.ink, 1);
+    t(s, "See every observation. Compare like with like. Trust what changed.", { x: MX, y: 5.72, w: CW, h: 0.5, fontFace: SERIF, fontSize: 22 });
+    t(s, [{ text: "Snack Seekers", options: { bold: true } }, { text: "   Yazhiniyan M.S.   " }, { text: "github.com/yazhiniyanMS/sky-time-machine", options: { fontFace: MONO, color: C.muted } }],
+      { x: MX, y: 6.35, w: CW, h: 0.3, fontSize: 12 });
+    s.addNotes("Implemented items are merged on main (PRs #1–#3). Items with limits exist in code with the restrictions stated in docs/LIMITATIONS.md. Planned items are not implemented.");
   }
 
   await pres.writeFile({ fileName: OUT });
