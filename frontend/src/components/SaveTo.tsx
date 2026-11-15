@@ -60,7 +60,7 @@ export function WatchButton({ kind, refId, ra, dec, label }: { kind: "region" | 
   return (
     <div className="flex items-center gap-2 text-[12px]">
       <Button onClick={watch} disabled={!!state && !state.startsWith("error")}>Add to watchlist</Button>
-      {state && <span className={state.startsWith("error") ? "text-bad" : "text-muted"} role="status">{state} {!state.startsWith("error") && <Link className="text-accent" href="/watchlists">view</Link>}</span>}
+      {state && <span className={state.startsWith("error") ? "text-bad" : "text-muted"} role="status">{state} {!state.startsWith("error") && <Link className="text-text underline decoration-line-strong hover:text-accent" href="/watchlists">view</Link>}</span>}
     </div>
   );
 }

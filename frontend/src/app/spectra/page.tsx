@@ -90,7 +90,7 @@ function SpectraPage() {
   }));
 
   const visitSeries: Series[] = Array.from({ length: Math.min(nVisits, 7) }, (_, i) => ({ key: `V${i}`, label: `Visit ${i + 1}`, color: SERIES[i] }));
-  if (nVisits > 7) visitSeries.push({ key: "Vother", label: `Visits 8–${nVisits}`, color: "#8592a5" });
+  if (nVisits > 7) visitSeries.push({ key: "Vother", label: `Visits 8–${nVisits}`, color: "var(--faint)" });
   const runSeriesAll = colorBy === "detector" ? cubeSeries.map((s) => ({ ...s, line: false })) : visitSeries;
   const runPts: PlotPoint[] = ok.flatMap((p) => {
     const v = vis.get(String(p.t_mid_mjd)) ?? 0;
@@ -113,18 +113,18 @@ function SpectraPage() {
   if (!pos && !err)
     return (
       <div className="p-6 max-w-2xl flex flex-col gap-3">
-        <h1 className="text-lg font-semibold">Spectral explorer</h1>
+        <h1 className="serif text-[26px] leading-tight font-semibold tracking-[-0.01em]">Spectral explorer</h1>
         <p className="text-[13px] text-muted">Choose a position, or open this page from a candidate.</p>
         <SearchBox onGo={(ra, dec) => router.push(`/spectra?ra=${ra}&dec=${dec}`)} />
       </div>
     );
 
   return (
-    <div className="p-4 max-w-[1500px] w-full mx-auto flex flex-col gap-4 min-w-0">
+    <div className="px-4 sm:px-6 py-6 max-w-[1500px] w-full mx-auto flex flex-col gap-4 min-w-0">
       <div className="flex flex-wrap items-end gap-4">
         <div>
-          <h1 className="text-lg font-semibold">Spectral explorer</h1>
-          {pos && <p className="text-[12px] text-muted num">{raHms(pos.ra)} {decDms(pos.dec)} · {pos.ra.toFixed(5)}°, {pos.dec.toFixed(5)}°{cand && <> · <Link className="text-accent" href={`/discovery/${cand.id}`}>{cand.id}</Link></>}</p>}
+          <h1 className="serif text-[26px] leading-tight font-semibold tracking-[-0.01em]">Spectral explorer</h1>
+          {pos && <p className="text-[12px] text-muted num">{raHms(pos.ra)} {decDms(pos.dec)} · {pos.ra.toFixed(5)}°, {pos.dec.toFixed(5)}°{cand && <> · <Link className="text-text underline decoration-line-strong hover:text-accent" href={`/discovery/${cand.id}`}>{cand.id}</Link></>}</p>}
         </div>
         <SearchBox className="ml-auto w-[min(380px,100%)]" onGo={(ra, dec) => router.push(`/spectra?ra=${ra}&dec=${dec}`)} />
       </div>
@@ -141,10 +141,10 @@ function SpectraPage() {
                   xLabel="Wavelength (µm)" yLabel={`Surface brightness (${cube.unit})`} height={260} />
                 <p className="text-[11px] text-faint mt-2">{cube.quantity} Tile {cube.tile_id}, pixel {cube.pixel.join(", ")} ({cube.pixel_scale_arcsec.toFixed(1)}″ pixels), inputs MJD {cube.mjd_range.map((m) => m?.toFixed(1)).join("–")}. Horizontal bars: channel bandwidth.</p>
                 <p className="text-[11px] text-muted mt-1">Missing channels ({cube.channels.filter((c) => c.missing).length}): {cube.channels.filter((c) => c.missing).map((c) => `D${c.detector}:${String(c.subchannel).padStart(2, "0")}${c.missing_reason?.startsWith("BLANKCH") ? " (archive blank)" : ""}`).join(", ") || "none"}</p>
-                <button className="text-[11px] text-accent mt-1" onClick={() => setShowTable((s) => !s)}>{showTable ? "Hide" : "Show"} channel table</button>
+                <button className="text-[12px] mt-1 underline decoration-line-strong hover:text-accent" onClick={() => setShowTable((s) => !s)}>{showTable ? "Hide" : "Show"} channel table</button>
                 {showTable && (
                   <div className="max-h-64 overflow-auto mt-2">
-                    <table className="w-full text-[11px] num"><thead className="text-faint text-left"><tr><th>Ch</th><th>Det:sub</th><th>λ (µm)</th><th>Δλ</th><th>R</th><th>MJy/sr</th><th>NHITS</th></tr></thead>
+                    <table className="w-full text-[11px] num"><thead className="text-muted text-left"><tr><th>Ch</th><th>Det:sub</th><th>λ (µm)</th><th>Δλ</th><th>R</th><th>MJy/sr</th><th>NHITS</th></tr></thead>
                       <tbody>{cube.channels.map((c) => <tr key={c.index} className={c.missing ? "text-faint" : ""}><td>{c.index}</td><td>D{c.detector}:{c.subchannel}</td><td>{c.wave_um.toFixed(3)}</td><td>{c.bandwidth_um.toFixed(3)}</td><td>{c.R.toFixed(0)}</td><td>{c.missing ? "missing" : c.surface_brightness_mjy_sr?.toPrecision(4)}</td><td>{c.nhits}</td></tr>)}</tbody></table>
                   </div>
                 )}
@@ -196,7 +196,7 @@ function SpectraPage() {
                     {visitList.map((v) => (
                       <label key={v.i} className="flex items-center gap-1 border border-line rounded px-2 py-0.5 num">
                         <input type="checkbox" checked={!hiddenVisits.has(v.i)} onChange={() => setHiddenVisits((s) => { const n = new Set(s); if (n.has(v.i)) n.delete(v.i); else n.add(v.i); return n; })} />
-                        <span className="w-2 h-2 rounded-full" style={{ background: v.i < 7 ? SERIES[v.i] : "#8592a5" }} />
+                        <span className="w-2 h-2 rounded-full" style={{ background: v.i < 7 ? SERIES[v.i] : "var(--faint)" }} />
                         {fmtDate(v.t0, false)} · {v.n}
                       </label>
                     ))}
@@ -220,8 +220,8 @@ function SpectraPage() {
           <Panel title="Source & provenance">
             <dl className="grid grid-cols-[110px_1fr] gap-y-1 text-[12px]">
               <dt className="text-faint">Position</dt><dd className="num">{pos ? `${pos.ra.toFixed(6)}, ${pos.dec.toFixed(6)}` : "—"}</dd>
-              {cand && <><dt className="text-faint">Candidate</dt><dd><Link className="text-accent num" href={`/discovery/${cand.id}`}>{cand.id}</Link> · {cand.machine_class}</dd></>}
-              <dt className="text-faint">Cube tile</dt><dd className="num break-all">{cube ? <a className="text-accent" href={cube.tile}>{cube.tile_id}</a> : "—"}</dd>
+              {cand && <><dt className="text-faint">Candidate</dt><dd><Link className="num text-text underline decoration-line-strong hover:text-accent" href={`/discovery/${cand.id}`}>{cand.id}</Link> · {cand.machine_class}</dd></>}
+              <dt className="text-faint">Cube tile</dt><dd className="num break-all">{cube ? <a className="text-text underline decoration-line-strong hover:text-accent" href={cube.tile}>{cube.tile_id}</a> : "—"}</dd>
               <dt className="text-faint">Run</dt><dd className="num">{run ? run.id : "none yet"}</dd>
               {run && <><dt className="text-faint">Processed</dt><dd className="num">{String(run.provenance?.processed_at ?? "").slice(0, 19)}</dd>
                 <dt className="text-faint">Pipeline</dt><dd className="num">{run.provenance?.pipeline_version}</dd>
@@ -234,7 +234,7 @@ function SpectraPage() {
                 ))}
               </ul>
             )}
-            {run && <a className="text-[12px] text-accent mt-2 inline-block" href={`${API}/api/spectra/runs/${run.id}/csv`}>Download measurements (CSV)</a>}
+            {run && <a className="text-[12px] text-text underline decoration-line-strong hover:text-accent mt-2 inline-block" href={`${API}/api/spectra/runs/${run.id}/csv`}>Download measurements (CSV)</a>}
           </Panel>
           <Panel title="What is plotted">
             <ul className="text-[12px] text-muted flex flex-col gap-2">
@@ -242,7 +242,7 @@ function SpectraPage() {
               <li><KindBadge kind="derived" /> <b className="text-text">Per-exposure flux:</b> forced aperture photometry by Sky Time Machine on archive pixels, with 1σ errors from VARIANCE. The point-source option divides by the EPSF enclosed fraction and is wrong for extended sources.</li>
               <li>The two quantities have different units (MJy/sr vs µJy) and are deliberately not overplotted.</li>
             </ul>
-            {pos && <Link className="text-[12px] text-accent mt-2 inline-block" href={`/intelligence?ra=${pos.ra}&dec=${pos.dec}${cand ? `&cand=${cand.id}` : ""}`}>Ask Sky Intelligence about these measurements →</Link>}
+            {pos && <Link className="text-[12px] text-text underline decoration-line-strong hover:text-accent mt-2 inline-block" href={`/intelligence?ra=${pos.ra}&dec=${pos.dec}${cand ? `&cand=${cand.id}` : ""}`}>Ask the assistant about these measurements</Link>}
           </Panel>
         </div>
       </div>

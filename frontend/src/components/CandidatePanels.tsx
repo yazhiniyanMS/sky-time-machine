@@ -6,19 +6,20 @@ import { type Assessment, type CounterpartResult, get, type Job, pollJob, post, 
 import { ASSOCIATION_LABEL, fmtDate } from "@/lib/astro";
 import { LightCurvePanel } from "./LightCurvePanel";
 import { PsfKernel } from "./PsfKernel";
-import { Button, Checks, ErrorNote, f, inputCls, KindBadge, Panel, Progress, Stat } from "./ui";
+import { Button, Checks, ErrorNote, f, inputCls, KindBadge, Panel, Progress, Stat, Tag } from "./ui";
 
 export function DataKindLegend() {
-  const items: [string, string, string][] = [
-    ["Raw observation", "Archive Level 2 pixels (shown resampled)", "border-accent/50 text-accent"],
-    ["Processed data", "Resampled, background-subtracted, PSF-matched images", "border-[#8fb8ff]/40 text-[#8fb8ff]"],
-    ["Derived measurement", "Computed by Sky Time Machine from those pixels", "border-derived/60 text-derived"],
-    ["Rule-based assessment", "Deterministic checks on stored measurements", "border-good/50 text-good"],
-    ["AI explanation", "Sky Intelligence text — never a measurement", "border-[#9085e9]/60 text-[#9085e9]"],
+  const items: [string, string, "original" | "muted" | "derived" | "good" | "text"][] = [
+    ["Raw observation", "Archive Level 2 pixels (shown resampled)", "original"],
+    ["Processed data", "Resampled, background-subtracted, PSF-matched images", "muted"],
+    ["Derived measurement", "Computed by Sky Time Machine from those pixels", "derived"],
+    ["Rule-based assessment", "Deterministic checks on stored measurements", "good"],
+    ["AI explanation", "Assistant text — never a measurement", "text"],
   ];
   return (
-    <div className="flex flex-wrap gap-2 text-[10px]" aria-label="Data kinds">
-      {items.map(([l, d, c]) => <span key={l} title={d} className={`inline-flex items-center h-5 px-1.5 rounded border uppercase tracking-wider ${c}`}>{l}</span>)}
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-muted" aria-label="Data kinds">
+      <span>Key</span>
+      {items.map(([l, d, t]) => <span key={l} title={d} className="flex items-center gap-1.5"><Tag tone={t}>{l}</Tag></span>)}
     </div>
   );
 }
@@ -30,14 +31,14 @@ export function AssessmentPanel({ id }: { id: string }) {
   if (err) return <Panel title="Explainable assessment"><ErrorNote error={err} /></Panel>;
   if (!a) return <Panel title="Explainable assessment"><Progress value={0.4} /></Panel>;
   return (
-    <Panel title="Explainable assessment" right={<span className="text-[10px] uppercase tracking-wider text-good border border-good/50 rounded px-1.5">Rule-based</span>}>
+    <Panel title="Explainable assessment" right={<Tag tone="good">Rule-based</Tag>}>
       <div className="flex flex-col gap-4 text-[13px]">
         <section>
-          <h3 className="text-[11px] uppercase tracking-wider text-faint mb-1">Why was it detected?</h3>
+          <h3 className="text-[12px] font-semibold text-text mb-1">Why was it detected?</h3>
           <p>{a.why_detected.text}</p>
         </section>
         <section>
-          <h3 className="text-[11px] uppercase tracking-wider text-faint mb-1">Which measurements support it?</h3>
+          <h3 className="text-[12px] font-semibold text-text mb-1">Which measurements support it?</h3>
           <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-[12px] num">
             {a.supporting_measurements.map((m) => (
               <li key={m.name} className="flex gap-2 border-b border-line/60 py-0.5"><span className="font-sans text-faint w-40 shrink-0">{m.name}</span>
@@ -46,14 +47,14 @@ export function AssessmentPanel({ id }: { id: string }) {
           </ul>
         </section>
         <section className="grid md:grid-cols-2 gap-4">
-          <div><h3 className="text-[11px] uppercase tracking-wider text-faint mb-1">Artifact checks passed ({a.checks_passed.length})</h3><Checks checks={a.checks_passed} /></div>
-          <div><h3 className="text-[11px] uppercase tracking-wider text-faint mb-1">Artifact checks failed ({a.checks_failed.length})</h3>
+          <div><h3 className="text-[12px] font-semibold text-text mb-1">Artifact checks passed ({a.checks_passed.length})</h3><Checks checks={a.checks_passed} /></div>
+          <div><h3 className="text-[12px] font-semibold text-text mb-1">Artifact checks failed ({a.checks_failed.length})</h3>
             {a.checks_failed.length ? <Checks checks={a.checks_failed} /> : <p className="text-[12px] text-muted">None.</p>}
             {a.comparison_checks_failed.length > 0 && <><h4 className="text-[11px] text-faint mt-2">Comparison-level</h4><Checks checks={a.comparison_checks_failed} /></>}
           </div>
         </section>
         <section>
-          <h3 className="text-[11px] uppercase tracking-wider text-faint mb-1">What remains uncertain?</h3>
+          <h3 className="text-[12px] font-semibold text-text mb-1">What remains uncertain?</h3>
           <ul className="list-disc pl-5 text-[12px] text-muted flex flex-col gap-1">{a.remaining_uncertainties.map((u) => <li key={u}>{u}</li>)}</ul>
         </section>
         <p className="text-[11px] text-faint">Classification rule — {a.classification.rule}</p>
@@ -113,7 +114,7 @@ export function CounterpartsPanel({ id }: { id: string }) {
       {!r && !busy && <p className="text-[12px] text-muted">Queries SIMBAD and Gaia DR3 around the candidate and compares separations with the combined positional uncertainty. Results are stored with their provenance.</p>}
       {r && (
         <div className="flex flex-col gap-3 text-[12px]">
-          <div className="border border-line rounded px-3 py-2"><b>{ASSOCIATION_LABEL[r.association]}</b> — <span className="text-muted">{r.explanation}</span></div>
+          <div className="border-l-2 border-text pl-3 py-1"><b>{ASSOCIATION_LABEL[r.association]}</b> — <span className="text-muted">{r.explanation}</span></div>
           {Object.entries(r.catalogs).map(([name, c]) => (
             <section key={name}>
               <h3 className="flex flex-wrap gap-2 items-baseline text-[12px]"><span className="font-medium">{name}</span>
@@ -121,10 +122,10 @@ export function CounterpartsPanel({ id }: { id: string }) {
                 <span className="text-faint num ml-auto">chance-alignment expectation {c.expected_chance.toFixed(3)} · {c.density_per_arcmin2.toFixed(1)}/arcmin² · {c.service?.split("/")[2] ?? "—"}{c.cached ? " (cached)" : ""}</span></h3>
               {c.counterparts.length > 0 ? (
                 <div className="overflow-x-auto"><table className="w-full text-[11px] num mt-1 [&_td]:px-1.5 [&_th]:px-1.5 [&_td:first-child]:pl-0 [&_th:first-child]:pl-0">
-                  <thead className="text-faint text-left"><tr><th className="font-normal">Identifier</th><th className="font-normal">Type</th><th className="font-normal text-right">Sep</th><th className="font-normal text-right">σ_pos (cat)</th><th className="font-normal text-right">n σ</th><th className="font-normal">Reference</th></tr></thead>
+                  <thead className="text-muted text-left"><tr><th className="font-normal">Identifier</th><th className="font-normal">Type</th><th className="font-normal text-right">Sep</th><th className="font-normal text-right">σ_pos (cat)</th><th className="font-normal text-right">n σ</th><th className="font-normal">Reference</th></tr></thead>
                   <tbody>{c.counterparts.slice(0, 10).map((x) => (
                     <tr key={x.id} className={`border-t border-line/60 ${x.within_3sigma ? "" : "text-faint"}`}>
-                      <td>{x.url ? <a className="text-accent" href={x.url} target="_blank" rel="noreferrer">{x.id}</a> : x.id}</td><td>{x.type ?? "—"}</td>
+                      <td>{x.url ? <a className="text-text underline decoration-line-strong hover:text-accent" href={x.url} target="_blank" rel="noreferrer">{x.id}</a> : x.id}</td><td>{x.type ?? "—"}</td>
                       <td className="text-right">{x.sep_arcsec.toFixed(2)}″</td><td className="text-right">{x.pos_err_arcsec != null ? `${x.pos_err_arcsec.toFixed(3)}″` : "—"}</td>
                       <td className="text-right">{x.n_sigma.toFixed(1)}</td><td className="max-w-[9rem] truncate" title={x.reference ?? ""}>{x.reference ?? "—"}</td>
                     </tr>))}</tbody>
@@ -181,7 +182,7 @@ export function HistoryPanel({ id, ra, dec, detector, epochs }: { id: string; ra
             <Stat label="Usable measurements" value={ok.length} />
             <Stat label="Channels" value={new Set(ok.map((p) => p.channel).filter((c) => c != null)).size} sub={ok.some((p) => p.channel == null) ? `${ok.filter((p) => p.channel == null).length} outside channel ranges` : undefined} />
             <Stat label="First / last" value={ok.length ? `${fmtDate(Math.min(...ok.map((p) => p.t_mid_mjd)), false)} / ${fmtDate(Math.max(...ok.map((p) => p.t_mid_mjd)), false)}` : "—"} />
-            <Link className="text-accent self-end" href={`/spectra?run=${run.id}&cand=${id}`}>Open in Spectra →</Link>
+            <Link className="self-end text-text underline decoration-line-strong hover:text-accent" href={`/spectra?run=${run.id}&cand=${id}`}>Open in Spectra</Link>
           </div>
         )}
       </Panel>

@@ -32,9 +32,9 @@ function Investigations() {
   }
 
   return (
-    <div className="p-4 max-w-[1200px] w-full mx-auto flex flex-col gap-4">
+    <div className="px-4 sm:px-6 py-6 max-w-[1200px] w-full mx-auto flex flex-col gap-4">
       <div>
-        <h1 className="text-lg font-semibold">Investigations</h1>
+        <h1 className="serif text-[26px] leading-tight font-semibold tracking-[-0.01em]">Investigations</h1>
         <p className="text-[12px] text-muted">Research collections stored on the server: saved candidates, comparisons, spectra, notes and references. Each has a permanent URL you can share.</p>
       </div>
       <ErrorNote error={err} />
@@ -44,7 +44,7 @@ function Investigations() {
           <ul className="divide-y divide-line">
             {list?.map((i) => (
               <li key={i.id} className="py-2 flex flex-wrap items-baseline gap-x-3">
-                <Link className="text-accent font-medium" href={`/investigations/${i.id}`}>{i.title}</Link>
+                <Link className="font-medium underline decoration-line-strong hover:text-accent" href={`/investigations/${i.id}`}>{i.title}</Link>
                 <span className="num text-[11px] text-faint">{i.id}</span>
                 <span className="text-[12px] text-muted">{i.n_items} item{i.n_items === 1 ? "" : "s"}</span>
                 {i.ra != null && <span className="num text-[11px] text-muted">{i.ra.toFixed(3)}, {i.dec?.toFixed(3)}</span>}

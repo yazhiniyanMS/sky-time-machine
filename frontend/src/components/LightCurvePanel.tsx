@@ -46,12 +46,12 @@ export function LightCurvePanel({ runId, channel, onChannel, highlight }: {
             <option value="good">good only</option><option value="warning">good + warning</option><option value="any">any (incl. bad)</option>
           </select>
         </label>
-        {channel != null && <a className="text-accent ml-auto" href={`${API}/api/lightcurves/${runId}/csv?channel=${channel}&quality=${quality}`}>Export CSV</a>}
+        {channel != null && <a className="ml-auto underline decoration-line-strong hover:text-accent" href={`${API}/api/lightcurves/${runId}/csv?channel=${channel}&quality=${quality}`}>Export CSV</a>}
       </div>
       {lc?.channels.length === 0 && <p className="text-[12px] text-muted">No usable measurements were assigned to an official channel.</p>}
       {st && (
         <>
-          <Plot ariaLabel="Flux density versus time in one channel" points={pts} series={[{ key: "m", label: "measurements", color: "#3987e5" }]}
+          <Plot ariaLabel="Flux density versus time in one channel" points={pts} series={[{ key: "m", label: "measurements", color: "var(--text)" }]}
             xLabel="Exposure midpoint (MJD)" yLabel="Flux density (µJy)" height={240} xFormat={(v) => fmtDate(v, false)}
             shadeX={(st.coverage_gaps ?? []).map((g) => ({ from: g.from_mjd, to: g.to_mjd, label: `No observation in this channel for ${g.days.toFixed(0)} days` }))}
             hLine={st.weighted_mean_ujy != null ? { y: st.weighted_mean_ujy, label: "weighted mean" } : undefined} markersX={highlight} />

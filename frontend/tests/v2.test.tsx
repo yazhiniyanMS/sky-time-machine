@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const replace = vi.fn();
@@ -97,7 +97,7 @@ describe("coverage heatmap and navigation", () => {
   });
   it("lists the eight research sections plus tools", () => {
     render(<Nav />);
-    for (const l of ["Explore", "Timeline", "Discoveries", "Spectra", "Tracking", "Investigations", "Watchlists", "Sky Intelligence", "Compare", "Community"])
+    for (const l of ["Explore", "Timeline", "Discoveries", "Spectra", "Tracking", "Investigations", "Watchlists", "Assistant", "Compare", "Community"])
       expect(screen.getAllByText(l).length).toBeGreaterThan(0);
   });
 });

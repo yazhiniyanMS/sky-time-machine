@@ -1,7 +1,7 @@
 """Build every raster asset the deck uses from real project outputs.
 
 Inputs (all produced by this repository):
-  assets/screens/*.png          headless-Firefox captures of the running app (scripts/capture_screens.mjs)
+  assets/screens/*.png          headless-Firefox captures of the running production app (scripts/capture_screens.mjs)
   assets/m31_gaussian.npz       M31 comparison re-run with the pre-0.2 PSF step (scripts/m31_psf_validation.py)
   assets/m31_epsf_cross.npz     same inputs with EPSF cross-convolution
   assets/m31_validation.json    measured numbers and the two on-grid EPSF kernels
@@ -20,7 +20,7 @@ import matplotlib
 matplotlib.use("Agg")
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 from scipy.signal import fftconvolve
 
 HERE = Path(__file__).resolve().parents[1]
@@ -29,14 +29,13 @@ OUT = A / "build"
 OUT.mkdir(exist_ok=True)
 SCR = A / "screens"
 
-BG = (5, 8, 14)
-MASK_1, MASK_2 = (16, 21, 30), (11, 15, 22)  # checker for masked pixels, as in the app
+# "Plate & Graphite" (docs/DESIGN_SYSTEM.md): images sit on a neutral charcoal plate.
+MASK_1, MASK_2 = (62, 60, 55), (28, 28, 26)  # hatched masked pixels, as in the app
 
-# Diverging: blue (fading) <- neutral dark -> orange (brightening), the app's convention.
-DIV = LinearSegmentedColormap.from_list(
-    "div", [(0.0, "#9cc8ff"), (0.18, "#3987e5"), (0.5, "#151b26"), (0.82, "#d95926"), (1.0, "#ffc7a3")]
-)
-SEQ = LinearSegmentedColormap.from_list("seq", ["#05080e", "#0c3550", "#1f7fb0", "#5bc8f5", "#e6f7ff"])
+# Diverging, as in the app (frontend/src/lib/render.ts): fading = muted steel, zero = charcoal (no hue),
+# brightening = burnt orange.
+DIV = LinearSegmentedColormap.from_list("div", [(0.0, "#8aacda"), (0.5, "#161615"), (1.0, "#f08643")])
+GRAY = LinearSegmentedColormap.from_list("g", ["#0e0e0d", "#4a4843", "#d8d4cb", "#ffffff"])
 
 
 def checker(h: int, w: int, cell: int) -> np.ndarray:
@@ -94,9 +93,8 @@ def m31_figures() -> None:
         y = np.arcsinh((x - lo) / ((hi - lo) * 0.12)) / np.arcsinh(1 / 0.12)
         return y
 
-    gray = LinearSegmentedColormap.from_list("g", ["#04060a", "#3b4250", "#c9d2de", "#ffffff"])
     for k in ("a", "b"):
-        pixel_image(stretch(g[k]), gray, 0, 1).save(OUT / f"m31_epoch_{k}.png")
+        pixel_image(stretch(g[k]), GRAY, 0, 1).save(OUT / f"m31_epoch_{k}.png")
 
     sg = np.where(g["valid"], g["significance"], np.nan)
     se = np.where(e["valid"], e["significance"], np.nan)
@@ -113,7 +111,7 @@ def m31_figures() -> None:
     ka, kb = np.array(v["psf_kernel_a"]), np.array(v["psf_kernel_b"])
     kc = fftconvolve(ka, kb)
     for name, k, sc in (("psf_a", ka, 60), ("psf_b", kb, 60), ("psf_common", kc, 32)):
-        rgb = to_rgb(SEQ, np.sqrt(np.clip(k / k.max(), 0, 1)))[::-1]
+        rgb = to_rgb(GRAY, np.sqrt(np.clip(k / k.max(), 0, 1)))[::-1]
         Image.fromarray(upscale(rgb, sc)).save(OUT / f"{name}.png")
 
 
@@ -125,41 +123,17 @@ def crop(name: str, box: tuple[int, int, int, int], out: str, width: int | None 
 
 
 def screens() -> None:
-    # 3200 x 2000 captures (1600 x 1000 CSS px at 2x). Boxes are in capture pixels.
-    crop("explore.png", (0, 300, 2480, 1695), "hero_explore.jpg")  # map only, below the search box
-    crop("explore.png", (0, 0, 3200, 1880), "demo_explore.jpg", 2400)
-    crop("compare.png", (0, 120, 3200, 1800), "demo_compare.jpg", 2800)
-    crop("timeline.png", (232, 250, 2968, 845), "demo_timeline_strip.jpg", 2400)
-    crop("timeline.png", (0, 120, 3200, 1450), "demo_timeline.jpg", 2400)
-    crop("discovery.png", (120, 120, 3080, 2000), "demo_discovery.jpg", 2400)
-    crop("spectra.png", (120, 120, 2370, 1340), "demo_spectra.jpg", 2000)
-
-    # Title-slide scrim: opaque deck background on the left fading to clear on the right.
-    w, h = 2400, 1350
-    x = np.linspace(0, 1, w)
-    alpha = np.clip(1.0 - (x - 0.18) / 0.55, 0, 1) ** 1.6 * 0.97
-    a = np.tile((alpha * 255).astype(np.uint8), (h, 1))
-    yb = np.linspace(0, 1, h)[:, None]
-    a = np.maximum(a, (np.clip((yb - 0.72) / 0.28, 0, 1) ** 2 * 200).astype(np.uint8))
-    rgba = np.dstack([np.full((h, w), c, np.uint8) for c in BG] + [a])
-    Image.fromarray(rgba, "RGBA").filter(ImageFilter.GaussianBlur(2)).save(OUT / "hero_scrim.png")
-
-    # Subtle star field for content-slide backgrounds (deterministic, sparse, faint).
-    rng = np.random.default_rng(7)
-    w, h = 2667, 1500
-    img = np.zeros((h, w, 3), np.float32)
-    img[:] = BG
-    yy, xx = np.mgrid[0:h, 0:w]
-    glow = np.exp(-(((xx - 0.85 * w) / (0.55 * w)) ** 2 + ((yy + 0.1 * h) / (0.7 * h)) ** 2))
-    img += glow[..., None] * np.array([6, 14, 26], np.float32)
-    n = 900
-    ys, xs = rng.integers(0, h, n), rng.integers(0, w, n)
-    br = rng.power(6, n) * 0.6 + 0.08
-    for y, x, b in zip(ys, xs, br):
-        img[y, x] = np.minimum(255, img[y, x] + 255 * b * np.array([0.85, 0.92, 1.0]))
-    Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.6)).save(
-        OUT / "bg_stars.jpg", quality=90
-    )
+    # 3200 x 2000 captures of the production build (1600 x 1000 CSS px at 2x). Boxes are in capture pixels.
+    crop("explore.png", (0, 0, 3200, 2000), "shot_explore.jpg", 2400)
+    crop("compare.png", (0, 0, 3200, 2000), "shot_compare.jpg", 2800)
+    crop("timeline.png", (232, 130, 2968, 2000), "shot_timeline.jpg", 2000)
+    crop("discovery.png", (120, 120, 3080, 1520), "shot_discovery.jpg", 2000)
+    crop("spectra.png", (120, 140, 3080, 1360), "shot_spectra.jpg", 2000)
+    # 3:2 thumbnails for the workflow slide
+    crop("explore.png", (0, 0, 2480, 1653), "thumb_explore.jpg", 1200)
+    crop("timeline.png", (232, 130, 2968, 1954), "thumb_timeline.jpg", 1200)
+    crop("compare.png", (0, 0, 2420, 1613), "thumb_compare.jpg", 1200)
+    crop("discovery.png", (120, 120, 2940, 2000), "thumb_discovery.jpg", 1200)
 
 
 if __name__ == "__main__":

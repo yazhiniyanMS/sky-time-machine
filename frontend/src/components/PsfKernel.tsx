@@ -7,7 +7,7 @@ export function PsfKernel({ k, label }: { k: number[][]; label: string }) {
   const c = 6;
   return (
     <figure className="flex flex-col items-center gap-1">
-      <svg width={n * c} height={n * c} role="img" aria-label={label}>
+      <svg width={n * c} height={n * c} role="img" aria-label={label} className="bg-plate">
         {k.map((row, j) =>
           row.map((v, i) => {
             const g = Math.round(255 * Math.sqrt(Math.max(0, v) / max));
@@ -16,7 +16,7 @@ export function PsfKernel({ k, label }: { k: number[][]; label: string }) {
           }),
         )}
       </svg>
-      <figcaption className="text-[10px] text-faint">{label}</figcaption>
+      <figcaption className="text-[10px] text-muted num">{label}</figcaption>
     </figure>
   );
 }

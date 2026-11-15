@@ -22,9 +22,9 @@ function Watchlists() {
   }
 
   return (
-    <div className="p-4 max-w-[1200px] w-full mx-auto flex flex-col gap-4">
+    <div className="px-4 sm:px-6 py-6 max-w-[1200px] w-full mx-auto flex flex-col gap-4">
       <div>
-        <h1 className="text-lg font-semibold">Watchlists</h1>
+        <h1 className="serif text-[26px] leading-tight font-semibold tracking-[-0.01em]">Watchlists</h1>
         <p className="text-[12px] text-muted max-w-3xl">Saved regions, candidates and investigations. A check re-queries the IRSA archive and lists SPHEREx products released since the previous check. SPHEREx data are published in batches (weekly quick releases and periodic data releases), so “new” means newly released, not observed in real time.</p>
       </div>
       <ErrorNote error={err} />
@@ -36,9 +36,9 @@ function Watchlists() {
               <li key={w.id} className="py-3 flex flex-col gap-1 text-[12px]">
                 <div className="flex flex-wrap items-baseline gap-x-3">
                   <span className="font-medium">{w.label}</span>
-                  <span className="text-[10px] uppercase tracking-wider text-faint">{w.kind}</span>
-                  {w.kind === "candidate" && w.ref_id && <Link className="num text-accent" href={`/discovery/${w.ref_id}`}>{w.ref_id}</Link>}
-                  {w.kind === "investigation" && w.ref_id && <Link className="num text-accent" href={`/investigations/${w.ref_id}`}>{w.ref_id}</Link>}
+                  <span className="text-[12px] text-muted">{w.kind}</span>
+                  {w.kind === "candidate" && w.ref_id && <Link className="num underline decoration-line-strong hover:text-accent" href={`/discovery/${w.ref_id}`}>{w.ref_id}</Link>}
+                  {w.kind === "investigation" && w.ref_id && <Link className="num underline decoration-line-strong hover:text-accent" href={`/investigations/${w.ref_id}`}>{w.ref_id}</Link>}
                   <Link className="num text-muted hover:text-accent" href={`/timeline?ra=${w.ra}&dec=${w.dec}&det=1`}>{w.ra.toFixed(4)}, {w.dec.toFixed(4)}</Link>
                   <span className="ml-auto flex gap-2">
                     <Button disabled={busy === w.id} onClick={() => act(w.id, () => post(`/api/watchlists/${w.id}/check`, {}))}>{busy === w.id ? "Checking…" : "Check now"}</Button>

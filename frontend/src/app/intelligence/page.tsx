@@ -25,11 +25,11 @@ function Markdown({ text }: { text: string }) {
   const inline = (s: string, k: number) =>
     s.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((p, i) =>
       p.startsWith("**") ? <strong key={`${k}-${i}`}>{p.slice(2, -2)}</strong> :
-      p.startsWith("`") ? <code key={`${k}-${i}`} className="num text-accent">{p.slice(1, -1)}</code> : p);
+      p.startsWith("`") ? <code key={`${k}-${i}`} className="num underline decoration-line-strong hover:text-accent">{p.slice(1, -1)}</code> : p);
   return (
     <div className="flex flex-col gap-1.5 text-[13px] leading-relaxed">
       {text.split("\n").map((l, i) =>
-        l.startsWith("### ") || l.startsWith("## ") ? <h3 key={i} className="text-[12px] uppercase tracking-wider text-muted mt-2">{l.replace(/^#+ /, "")}</h3> :
+        l.startsWith("### ") || l.startsWith("## ") ? <h3 key={i} className="text-[13px] font-semibold text-text mt-2">{l.replace(/^#+ /, "")}</h3> :
         /^\s*[-*] /.test(l) ? <div key={i} className="pl-4 relative before:content-['–'] before:absolute before:left-0 before:text-faint">{inline(l.replace(/^\s*[-*] /, ""), i)}</div> :
         l.trim() === "" ? <div key={i} className="h-1" /> :
         /^_.*_$/.test(l.trim()) ? <p key={i} className="italic text-muted">{l.trim().slice(1, -1)}</p> : <p key={i}>{inline(l, i)}</p>)}
@@ -82,8 +82,8 @@ function Intelligence() {
   return (
     <div className="flex-1 flex flex-col max-w-3xl w-full mx-auto p-4 gap-3 min-h-0">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-lg font-semibold mr-2">Sky Intelligence</h1>
-        <span className={`text-[11px] px-1.5 h-5 inline-flex items-center rounded border ${status?.llm_enabled ? "border-accent/50 text-accent" : "border-line-strong text-muted"}`}>
+        <h1 className="serif text-[26px] leading-tight font-semibold tracking-[-0.01em] mr-2">Research assistant</h1>
+        <span className={`text-[11px] px-1.5 h-5 inline-flex items-center rounded border ${status?.llm_enabled ? "border-text/60 text-text" : "border-line-strong text-muted"}`}>
           {status ? (status.llm_enabled ? `LLM · ${status.model}` : "Rule-based mode (no LLM key configured)") : "…"}
         </span>
       </div>
@@ -102,7 +102,7 @@ function Intelligence() {
           </div>
         )}
         {msgs.map((m, i) => (
-          <div key={i} className={m.role === "user" ? "self-end max-w-[85%] bg-panel-2 border border-line rounded-md px-3 py-2 text-[13px]" : "border-l-2 border-accent-dim pl-3"}>
+          <div key={i} className={m.role === "user" ? "self-end max-w-[85%] bg-panel-2 border border-line  px-3 py-2 text-[13px]" : "border-l-2 border-accent-dim pl-3"}>
             {m.role === "user" ? m.content : <Markdown text={m.content} />}
             {m.meta && (
               <div className="mt-2 text-[10px] text-faint num flex flex-wrap gap-x-3">
@@ -119,7 +119,7 @@ function Intelligence() {
                 <ul className="mt-1 flex flex-col gap-0.5">
                   {(m.meta!.grounding.citations as Citation[]).map((c) => (
                     <li key={c.ref} className="num text-muted">
-                      [{c.url ? <a className="text-accent" href={c.url} target={c.url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">{c.ref}</a> : c.ref}] {c.kind}{c.note ? ` · ${c.note}` : ""}
+                      [{c.url ? <a className="text-text underline decoration-line-strong hover:text-accent" href={c.url} target={c.url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">{c.ref}</a> : c.ref}] {c.kind}{c.note ? ` · ${c.note}` : ""}
                     </li>
                   ))}
                 </ul>

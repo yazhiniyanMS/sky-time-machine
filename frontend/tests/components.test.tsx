@@ -27,7 +27,7 @@ const comp: Comparison = {
 describe("navigation", () => {
   it("lists all seven sections, marks the active one and carries sky context", () => {
     render(<Nav />);
-    for (const l of ["Explore", "Timeline", "Discoveries", "Compare", "Tracking", "Sky Intelligence", "Community"])
+    for (const l of ["Explore", "Timeline", "Discoveries", "Compare", "Tracking", "Assistant", "Community"])
       expect(screen.getAllByText(l).length).toBeGreaterThan(0);
     const tl = screen.getAllByRole("link", { name: "Timeline" })[0];
     expect(tl.getAttribute("aria-current")).toBe("page");
@@ -66,6 +66,6 @@ describe("blink comparator", () => {
     render(<ComparisonViewer comp={comp} mode="side" onMode={() => {}} onSelect={onSelect} />);
     fireEvent.click(screen.getByText("New-source candidate"));
     expect(onSelect).toHaveBeenCalledWith("ST-2026-000001");
-    expect(screen.getAllByText(/Original data/i).length).toBe(2);
+    expect(screen.getAllByText(/^Original$/i).length).toBe(2);
   });
 });

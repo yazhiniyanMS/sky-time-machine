@@ -1,25 +1,65 @@
 @import "tailwindcss";
 
-/* Sky Time Machine design tokens: a near-black observatory palette with a
-   single cool accent, an amber "derived product" marker and a diverging
-   pair for brightening / fading. */
+/* "Plate & Graphite" — see docs/DESIGN_SYSTEM.md.
+   Paper is the default surface (reading, tables, plots). A page that works on images marks its root
+   with .theme-graphite, which switches the whole document, header included, through :has(). */
 :root {
-  --bg: #07090d;
-  --panel: #0d1117;
-  --panel-2: #121821;
-  --line: #1e2633;
-  --line-strong: #2b3646;
-  --text: #d7dde6;
-  --muted: #8592a5;
-  --faint: #566275;
-  --accent: #7cc4ff;
-  --accent-dim: #2a4a66;
-  --derived: #f2b45a;
-  --pos: #ff8a5c;
-  --neg: #5cc8ff;
-  --good: #6fd39b;
-  --warn: #f2c35a;
-  --bad: #ff6b7a;
+  --bg: #f4f1ea;
+  --panel: #faf8f3;
+  --panel-2: #ece8de;
+  --line: #dcd6c8;
+  --line-strong: #bfb7a6;
+  --text: #1c1b19;
+  --muted: #5d594f;
+  --faint: #8a8578;
+  --accent: #b4561e;
+  --accent-dim: #ead7c6;
+  --original: #5f6b2e;
+  --derived: #a36a12;
+  --pos: #b4501e;
+  --neg: #3b5f86;
+  --good: #4f6b2a;
+  --warn: #a36a12;
+  --bad: #9e3a2b;
+  --plate: #121211;
+  --on-ink: #f4f1ea;
+  /* Detectors D1–D6, ordered by wavelength (check_palette.py --adjacent passes on this surface). */
+  --d1: #3b5788;
+  --d2: #27a595;
+  --d3: #686d12;
+  --d4: #d9a53e;
+  --d5: #c2552a;
+  --d6: #7a2a2b;
+  color-scheme: light;
+}
+
+:root:has(.theme-graphite) {
+  --bg: #161615;
+  --panel: #1c1c1a;
+  --panel-2: #252522;
+  --line: #2e2d2a;
+  --line-strong: #45433e;
+  --text: #ece8df;
+  --muted: #a7a194;
+  --faint: #78736a;
+  --accent: #e09a45;
+  --accent-dim: #4a3720;
+  --original: #a9b26c;
+  --derived: #d9a441;
+  --pos: #e07a3a;
+  --neg: #7fa3cc;
+  --good: #9db46a;
+  --warn: #d9a441;
+  --bad: #d2665a;
+  --plate: #0e0e0d;
+  --on-ink: #161615;
+  --d1: #a3b6e3;
+  --d2: #2a8e80;
+  --d3: #9aa032;
+  --d4: #f0c862;
+  --d5: #d9653a;
+  --d6: #9c6bc0;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -33,14 +73,25 @@
   --color-faint: var(--faint);
   --color-accent: var(--accent);
   --color-accent-dim: var(--accent-dim);
+  --color-original: var(--original);
   --color-derived: var(--derived);
   --color-pos: var(--pos);
   --color-neg: var(--neg);
   --color-good: var(--good);
   --color-warn: var(--warn);
   --color-bad: var(--bad);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-mono-jb);
+  --color-plate: var(--plate);
+  --color-on-ink: var(--on-ink);
+  --font-sans: var(--font-plex);
+  --font-mono: var(--font-plex-mono);
+  --font-serif: var(--font-source-serif);
+  /* Square corners: 2 px at most. rounded-full stays round for dots. */
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
+  --radius-2xl: 2px;
 }
 
 html,
@@ -50,28 +101,42 @@ body {
 }
 
 body {
-  font-family: var(--font-inter), system-ui, sans-serif;
-  font-feature-settings: "cv11", "ss01";
+  font-family: var(--font-plex), system-ui, sans-serif;
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }
 
 .num {
-  font-family: var(--font-mono-jb), ui-monospace, monospace;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.serif {
+  font-family: var(--font-source-serif), Georgia, serif;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  accent-color: var(--text);
 }
 
 :focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
 ::selection {
   background: var(--accent-dim);
 }
 
-/* Aladin Lite inherits a light theme; keep its chrome subdued. */
 .aladin-container {
-  background: #000 !important;
+  background: var(--plate) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -79,4 +144,26 @@ body {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* Aladin Lite chrome, restyled to the workspace (its own readout shows the cursor position). */
+.aladin-location {
+  background: var(--panel) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.aladin-location,
+.aladin-location * {
+  color: var(--text) !important;
+  font-family: var(--font-plex-mono), ui-monospace, monospace !important;
+  font-size: 12px !important;
+}
+.aladin-btn,
+.aladin-zoom-controls button {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }

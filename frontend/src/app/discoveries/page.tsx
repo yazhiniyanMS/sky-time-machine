@@ -48,23 +48,23 @@ function Feed() {
   const page = Number(p("page"));
 
   return (
-    <div className="p-4 max-w-[1500px] w-full mx-auto flex flex-col gap-4">
+    <div className="px-4 sm:px-6 py-6 max-w-[1500px] w-full mx-auto flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-4">
         <div>
-          <h1 className="text-lg font-semibold">Discoveries</h1>
+          <h1 className="serif text-[26px] leading-tight font-semibold tracking-[-0.01em]">Discoveries</h1>
           <p className="text-[12px] text-muted max-w-3xl">Change candidates detected automatically in stored comparisons of real SPHEREx images. Machine classes are rule-based labels, and every candidate is unverified unless a reviewer has changed its status.</p>
         </div>
-        <a className="ml-auto text-[12px] text-accent hover:underline" href={`${API}/api/export/candidates.csv`}>Export all as CSV</a>
+        <a className="ml-auto text-[12px] text-text underline decoration-line-strong hover:text-accent" href={`${API}/api/export/candidates.csv`}>Export all as CSV</a>
       </div>
 
-      <section aria-label="Filters" className="flex flex-wrap items-end gap-3 border border-line rounded-md bg-panel px-3 py-2">
+      <section aria-label="Filters" className="flex flex-wrap items-end gap-3 border-y border-line-strong px-3 py-2">
         <form onSubmit={(e) => { e.preventDefault(); set({ q: qDraft.trim() || null }); }} className="flex items-end gap-1">
-          <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-faint">Candidate ID
+          <label className="flex flex-col gap-1 text-[12px] text-muted">Candidate ID
             <input value={qDraft} onChange={(e) => setQDraft(e.target.value)} placeholder="ST-2026-000142" className={`${inputCls} w-44 num`} />
           </label>
-          <button className="h-8 px-2 text-[12px] text-accent">Search</button>
+          <button className="h-8 px-3 text-[12px] border border-line-strong hover:bg-panel-2">Search</button>
         </form>
-        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-faint">Sort
+        <label className="flex flex-col gap-1 text-[12px] text-muted">Sort
           <select value={`${p("sort")}:${p("order")}`} onChange={(e) => { const [s, o] = e.target.value.split(":"); set({ sort: s, order: o }); }} className={inputCls}>
             <option value="significance:desc">Significance (tier first)</option>
             <option value="snr:desc">Aperture S/N</option>
@@ -73,13 +73,13 @@ function Feed() {
             <option value="created:desc">Processed, newest</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-faint">Type
+        <label className="flex flex-col gap-1 text-[12px] text-muted">Type
           <select value={p("machine_class")} onChange={(e) => set({ machine_class: e.target.value })} className={inputCls}>
             <option value="">All machine classes</option>
             {Object.entries(CLASS_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
         </label>
-        <fieldset className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-faint">
+        <fieldset className="flex flex-col gap-1 text-[12px] text-muted">
           <legend className="mb-1">Quality tier</legend>
           <div className="flex gap-2 normal-case tracking-normal text-[12px] text-muted h-8 items-center">
             {["A", "B", "R"].map((t) => (
@@ -87,10 +87,10 @@ function Feed() {
             ))}
           </div>
         </fieldset>
-        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-faint">Min S/N
+        <label className="flex flex-col gap-1 text-[12px] text-muted">Min S/N
           <input type="number" step="any" min={0} value={p("min_snr")} onChange={(e) => set({ min_snr: e.target.value })} className={`${inputCls} w-20 num`} />
         </label>
-        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wider text-faint">Verification
+        <label className="flex flex-col gap-1 text-[12px] text-muted">Verification
           <select value={p("verification")} onChange={(e) => set({ verification: e.target.value })} className={inputCls}>
             <option value="">Any</option><option value="unverified">Unverified</option><option value="under_review">Under review</option>
             <option value="confirmed_real">Confirmed real</option><option value="rejected_artifact">Rejected artifact</option>
@@ -109,7 +109,7 @@ function Feed() {
         {data && data.total === 0 && (
           <div className="py-6 text-[13px] text-muted max-w-2xl">
             {data.n_comparisons_processed === 0 ? (
-              <>No comparisons have been processed yet, so there are no candidates. Candidates appear only after real SPHEREx epochs are compared. Open the <Link className="text-accent" href="/timeline?ra=10.6847&dec=41.269&det=1">Timeline</Link>, choose a spectrally matched pair and run a comparison.</>
+              <>No comparisons have been processed yet, so there are no candidates. Candidates appear only after real SPHEREx epochs are compared. Open the <Link className="text-text underline decoration-line-strong hover:text-accent" href="/timeline?ra=10.6847&dec=41.269&det=1">Timeline</Link>, choose a spectrally matched pair and run a comparison.</>
             ) : (
               <>No candidate matches these filters ({data.n_comparisons_processed} comparison{data.n_comparisons_processed === 1 ? "" : "s"} processed). Widen the filters, or run more comparisons from the Timeline to add candidates.</>
             )}
@@ -117,8 +117,8 @@ function Feed() {
         )}
         {data && data.items.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full text-[12px] [&_td]:px-2 [&_th]:px-2 [&_td:first-child]:pl-0 [&_th:first-child]:pl-0">
-              <thead className="text-faint text-left"><tr className="border-b border-line">
+            <table className="w-full min-w-[1000px] text-[12px] [&_td]:px-2 [&_th]:px-2 [&_td:first-child]:pl-0 [&_th:first-child]:pl-0">
+              <thead className="text-muted text-left"><tr className="border-b border-text/60">
                 <th className="py-1 font-normal">Candidate</th><th className="font-normal">RA, Dec</th><th className="font-normal">Machine class</th>
                 <th className="font-normal">Tier</th><th className="font-normal text-right">Peak</th><th className="font-normal text-right">S/N</th>
                 <th className="font-normal">Epochs (A → B)</th><th className="font-normal">Band</th><th className="font-normal">Pipeline</th>
@@ -127,7 +127,7 @@ function Feed() {
               <tbody>
                 {data.items.map((c) => (
                   <tr key={c.id} className={`border-b border-line/60 hover:bg-panel-2 ${c.rejected ? "opacity-50" : ""}`}>
-                    <td className="py-1.5 num"><Link className="text-accent" href={href(`/discovery/${c.id}`, {})}>{c.id}</Link></td>
+                    <td className="py-1.5 num"><Link className="text-text underline decoration-line-strong hover:text-accent" href={href(`/discovery/${c.id}`, {})}>{c.id}</Link></td>
                     <td className="num text-muted">{c.ra.toFixed(5)}, {c.dec >= 0 ? "+" : ""}{c.dec.toFixed(5)}</td>
                     <td title={data.class_descriptions[c.machine_class]}>{CLASS_LABEL[c.machine_class]}</td>
                     <td><TierBadge tier={c.quality_tier} /></td>

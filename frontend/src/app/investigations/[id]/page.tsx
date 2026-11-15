@@ -41,11 +41,11 @@ export default function InvestigationPage() {
   const dirty = draft.title !== inv.title || draft.description !== inv.description || draft.notes !== inv.notes || draft.ra !== inv.ra || draft.dec !== inv.dec || draft.radius_deg !== inv.radius_deg;
 
   return (
-    <div className="p-4 max-w-[1300px] w-full mx-auto flex flex-col gap-4">
+    <div className="px-4 sm:px-6 py-6 max-w-[1300px] w-full mx-auto flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-[260px]">
           <label className="sr-only" htmlFor="inv-title">Title</label>
-          <input id="inv-title" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} className="w-full bg-transparent text-lg font-semibold outline-none border-b border-transparent focus:border-accent" />
+          <input id="inv-title" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} className="serif w-full bg-transparent text-[26px] leading-tight font-semibold outline-none border-b border-transparent focus:border-text" />
           <p className="text-[11px] text-faint num">{inv.id} · owner {inv.owner || "—"} · created {inv.created_at.slice(0, 10)} · updated {inv.updated_at.slice(0, 16).replace("T", " ")}</p>
         </div>
         <div className="flex flex-wrap gap-2 text-[12px]">
@@ -70,9 +70,9 @@ export default function InvestigationPage() {
               <ul className="divide-y divide-line text-[12px]">
                 {items.map((it) => (
                   <li key={it.id} className="py-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    {k === "candidate" && <Link className="num text-accent" href={`/discovery/${it.ref_id}`}>{it.ref_id}</Link>}
-                    {k === "comparison" && <Link className="num text-accent" href={`/compare?ra=${it.payload.ra}&dec=${it.payload.dec}&a=${it.payload.product_a}&b=${it.payload.product_b}&det=${it.payload.detector}&mode=blink`}>{it.ref_id}</Link>}
-                    {k === "spectrum" && <Link className="num text-accent" href={`/spectra?run=${it.ref_id}`}>{it.ref_id}</Link>}
+                    {k === "candidate" && <Link className="num underline decoration-line-strong hover:text-accent" href={`/discovery/${it.ref_id}`}>{it.ref_id}</Link>}
+                    {k === "comparison" && <Link className="num underline decoration-line-strong hover:text-accent" href={`/compare?ra=${it.payload.ra}&dec=${it.payload.dec}&a=${it.payload.product_a}&b=${it.payload.product_b}&det=${it.payload.detector}&mode=blink`}>{it.ref_id}</Link>}
+                    {k === "spectrum" && <Link className="num underline decoration-line-strong hover:text-accent" href={`/spectra?run=${it.ref_id}`}>{it.ref_id}</Link>}
                     {!["candidate", "comparison", "spectrum"].includes(k) && <span className="num">{it.ref_id}</span>}
                     {it.payload.quality_tier && <TierBadge tier={it.payload.quality_tier} />}
                     {it.payload.machine_class && <span className="text-muted">{CLASS_LABEL[it.payload.machine_class]}</span>}
@@ -99,9 +99,9 @@ export default function InvestigationPage() {
             </div>
             {inv.ra != null && (
               <div className="flex flex-col gap-1 mt-3 text-[12px]">
-                <Link className="text-accent" href={`/?ra=${inv.ra}&dec=${inv.dec}&fov=${Math.max(0.3, (inv.radius_deg ?? 0.25) * 3)}`}>Open on the sky map →</Link>
-                <Link className="text-accent" href={`/timeline?ra=${inv.ra}&dec=${inv.dec}&det=1`}>Observation history (timeline) →</Link>
-                <Link className="text-accent" href={`/discoveries?ra=${inv.ra}&dec=${inv.dec}&radius=${inv.radius_deg ?? 0.25}&near=1`}>Candidates in this region →</Link>
+                <Link className="text-text underline decoration-line-strong hover:text-accent" href={`/?ra=${inv.ra}&dec=${inv.dec}&fov=${Math.max(0.3, (inv.radius_deg ?? 0.25) * 3)}`}>Open on the sky map</Link>
+                <Link className="text-text underline decoration-line-strong hover:text-accent" href={`/timeline?ra=${inv.ra}&dec=${inv.dec}&det=1`}>Observation history (timeline)</Link>
+                <Link className="text-text underline decoration-line-strong hover:text-accent" href={`/discoveries?ra=${inv.ra}&dec=${inv.dec}&radius=${inv.radius_deg ?? 0.25}&near=1`}>Candidates in this region</Link>
                 <div className="mt-1"><WatchButton kind="investigation" refId={inv.id} label={inv.title} /></div>
               </div>
             )}
@@ -110,7 +110,7 @@ export default function InvestigationPage() {
             <ul className="text-[12px] flex flex-col gap-1">
               {inv.references.map((r, i) => (
                 <li key={i} className="flex gap-2">
-                  <span className="flex-1">{r.title || r.bibcode}{r.url && <> — <a className="text-accent break-all" href={r.url} target="_blank" rel="noreferrer">{r.url}</a></>}</span>
+                  <span className="flex-1">{r.title || r.bibcode}{r.url && <> — <a className="break-all text-text underline decoration-line-strong hover:text-accent" href={r.url} target="_blank" rel="noreferrer">{r.url}</a></>}</span>
                   <button className="text-faint hover:text-bad" onClick={() => save({ references: inv.references.filter((_, j) => j !== i) })} aria-label="Remove reference">×</button>
                 </li>
               ))}
@@ -128,7 +128,7 @@ export default function InvestigationPage() {
           </Panel>
           <Panel title="Actions">
             <div className="flex flex-col gap-2 text-[12px]">
-              <Link className="text-accent" href={`/intelligence?investigation=${inv.id}${inv.ra != null ? `&ra=${inv.ra}&dec=${inv.dec}` : ""}`}>Summarise with Sky Intelligence →</Link>
+              <Link className="text-text underline decoration-line-strong hover:text-accent" href={`/intelligence?investigation=${inv.id}${inv.ra != null ? `&ra=${inv.ra}&dec=${inv.dec}` : ""}`}>Summarise with the assistant</Link>
               <button className="text-left text-faint hover:text-bad" onClick={async () => { if (confirm(`Delete investigation “${inv.title}”? This cannot be undone.`)) { await del(`/api/investigations/${id}`); router.push("/investigations"); } }}>Delete investigation</button>
             </div>
           </Panel>
